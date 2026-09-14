@@ -1,0 +1,10 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      { "hooks": [{ "type": "command", "command": "python3 .claude/hooks/log_prompt.py" }] }
+    ],
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "python3 .claude/hooks/log_response.py" }] }
+    ]
+  }
+}
