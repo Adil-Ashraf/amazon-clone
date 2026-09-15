@@ -16,7 +16,8 @@
             class: "w-full rounded border-gray-300 px-3 py-2" %>
     </div>
 
-    <%= f.submit "Sign In", class: "w-full bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold py-2 rounded cursor-pointer" %>
+    <%= f.submit "Sign In", data: { turbo_submits_with: "Signing In..." },
+          class: "w-full bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold py-2 rounded cursor-pointer" %>
   <% end %>
 
   <p class="mt-4 text-sm text-gray-600">

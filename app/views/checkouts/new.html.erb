@@ -6,15 +6,7 @@
   <div class="md:col-span-2">
     <h2 class="text-lg font-semibold text-gray-900 mb-3">Shipping Address</h2>
 
-    <% if @order.errors.any? %>
-      <div class="mb-4 rounded bg-red-100 text-red-800 px-4 py-2">
-        <ul class="list-disc list-inside">
-          <% @order.errors.full_messages.each do |message| %>
-            <li><%= message %></li>
-          <% end %>
-        </ul>
-      </div>
-    <% end %>
+    <%= render "shared/error_messages", object: @order %>
 
     <%= form_with model: @order, url: checkout_path, method: :post, class: "bg-white rounded shadow p-6 space-y-4" do |f| %>
       <div>
@@ -32,8 +24,8 @@
         <%= f.text_field :shipping_address_line2, class: "w-full rounded border-gray-300 px-3 py-2" %>
       </div>
 
-      <div class="grid grid-cols-3 gap-4">
-        <div class="col-span-1">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="sm:col-span-1">
           <%= f.label :shipping_city, "City", class: "block text-sm font-medium mb-1" %>
           <%= f.text_field :shipping_city, required: true, class: "w-full rounded border-gray-300 px-3 py-2" %>
         </div>
@@ -52,7 +44,8 @@
         <p class="text-sm text-gray-500 mb-4">
           This is a demo checkout &mdash; no real payment is processed. Clicking "Place Order" completes your order immediately.
         </p>
-        <%= f.submit "Place Order", class: "w-full bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold py-3 rounded cursor-pointer" %>
+        <%= f.submit "Place Order", data: { turbo_submits_with: "Placing Order..." },
+              class: "w-full bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold py-3 rounded cursor-pointer" %>
       </div>
     <% end %>
   </div>

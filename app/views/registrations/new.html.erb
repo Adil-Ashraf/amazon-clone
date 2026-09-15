@@ -3,15 +3,7 @@
 <div class="max-w-sm mx-auto bg-white rounded shadow p-6">
   <h1 class="text-2xl font-semibold mb-4">Create Account</h1>
 
-  <% if @user.errors.any? %>
-    <div class="mb-4 rounded bg-red-100 text-red-800 px-4 py-2">
-      <ul class="list-disc list-inside">
-        <% @user.errors.full_messages.each do |message| %>
-          <li><%= message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
+  <%= render "shared/error_messages", object: @user %>
 
   <%= form_with model: @user, url: registration_path, method: :post do |f| %>
     <div class="mb-4">
@@ -38,7 +30,8 @@
             class: "w-full rounded border-gray-300 px-3 py-2" %>
     </div>
 
-    <%= f.submit "Create Account", class: "w-full bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold py-2 rounded cursor-pointer" %>
+    <%= f.submit "Create Account", data: { turbo_submits_with: "Creating Account..." },
+          class: "w-full bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold py-2 rounded cursor-pointer" %>
   <% end %>
 
   <p class="mt-4 text-sm text-gray-600">

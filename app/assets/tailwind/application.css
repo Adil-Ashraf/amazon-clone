@@ -1,1 +1,8 @@
 @import "tailwindcss";
+
+/* Subtle loading feedback while a Turbo Frame (e.g. live search/category
+   filtering) is fetching its replacement content. */
+turbo-frame[busy] {
+  opacity: 0.6;
+  transition: opacity 150ms ease-in-out;
+}

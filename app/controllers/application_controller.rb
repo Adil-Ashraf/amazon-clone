@@ -9,7 +9,7 @@ class ApplicationController < ActionController::Base
 
   rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 
-  helper_method :current_user, :logged_in?, :cart_item_count
+  helper_method :current_user, :logged_in?, :cart_item_count, :live_search?
 
   private
 
@@ -31,6 +31,12 @@ class ApplicationController < ActionController::Base
 
   def cart_item_count
     current_user&.cart&.cart_items&.sum(:quantity) || 0
+  end
+
+  # The nav search box progressively enhances into live search-as-you-type
+  # only on the page with a matching "products_results" Turbo Frame to target.
+  def live_search?
+    controller_name == "products" && action_name == "index"
   end
 
   def require_login

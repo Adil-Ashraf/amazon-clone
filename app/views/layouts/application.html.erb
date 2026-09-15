@@ -20,6 +20,7 @@
 
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
   </head>
 
   <body class="bg-gray-50 text-gray-900">
@@ -29,20 +30,24 @@
           AmazonClone
         <% end %>
 
-        <%= form_with url: products_path, method: :get, class: "flex flex-1 min-w-[200px] order-3 sm:order-none" do |f| %>
+        <%= form_with url: products_path, method: :get, class: "flex flex-1 min-w-[200px] order-3 sm:order-none",
+              data: live_search? ? { controller: "live-search", live_search_target: "form", turbo_frame: "products_results" } : {} do |f| %>
           <%= f.text_field :query,
                 value: params[:query],
                 placeholder: "Search products...",
                 "aria-label": "Search products",
+                autocomplete: "off",
+                data: live_search? ? { live_search_target: "input", action: "input->live-search#search" } : {},
                 class: "flex-1 rounded-l px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400" %>
           <%= f.submit "Search", class: "bg-amber-400 text-slate-900 px-4 rounded-r font-semibold hover:bg-amber-300 cursor-pointer" %>
         <% end %>
 
-        <nav class="flex items-center gap-4 whitespace-nowrap ml-auto" aria-label="Account">
+        <nav class="flex items-center gap-3 flex-wrap ml-auto" aria-label="Account">
           <% if logged_in? %>
-            <span class="text-sm">Hello, <%= current_user.name %></span>
+            <span class="text-sm hidden sm:inline">Hello, <%= current_user.name %></span>
             <%= link_to "Orders", orders_path, class: "text-sm hover:underline" %>
             <%= button_to "Sign Out", session_path, method: :delete,
+                  data: { turbo_submits_with: "Signing Out..." },
                   class: "text-sm text-white hover:underline bg-transparent border-0 p-0 cursor-pointer" %>
           <% else %>
             <%= link_to "Sign In", new_session_path, class: "text-sm hover:underline" %>

@@ -1,4 +1,5 @@
-<%= link_to product_path(product), class: "group block bg-white rounded shadow hover:shadow-md transition-shadow overflow-hidden" do %>
+<%= link_to product_path(product), data: { turbo_frame: "_top" },
+      class: "group block bg-white rounded shadow hover:shadow-md transition-shadow overflow-hidden" do %>
   <div class="aspect-[4/3] bg-gray-200">
     <%= image_tag product.image_url, alt: product.name, loading: "lazy",
           class: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" %>
