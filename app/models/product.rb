@@ -11,4 +11,14 @@ class Product < ApplicationRecord
   pg_search_scope :search_full_text,
     against: [ :name, :description ],
     using: { tsearch: { prefix: true } }
+
+  LOW_STOCK_THRESHOLD = 5
+
+  def out_of_stock?
+    stock <= 0
+  end
+
+  def low_stock?
+    stock.positive? && stock <= LOW_STOCK_THRESHOLD
+  end
 end

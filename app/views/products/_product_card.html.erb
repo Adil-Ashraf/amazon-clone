@@ -1,0 +1,12 @@
+<%= link_to product_path(product), class: "group block bg-white rounded shadow hover:shadow-md transition-shadow overflow-hidden" do %>
+  <div class="aspect-[4/3] bg-gray-200">
+    <%= image_tag product.image_url, alt: product.name, loading: "lazy",
+          class: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" %>
+  </div>
+  <div class="p-4">
+    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1"><%= product.category.name %></p>
+    <h3 class="text-sm font-medium text-gray-900 line-clamp-2 mb-2 min-h-10"><%= product.name %></h3>
+    <p class="text-lg font-semibold text-gray-900 mb-1"><%= format_price_cents(product.price_cents) %></p>
+    <%= stock_badge(product) %>
+  </div>
+<% end %>

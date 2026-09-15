@@ -1,0 +1,31 @@
+<% content_for :title, @product.name %>
+
+<nav class="text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
+  <%= link_to "Home", root_path, class: "hover:underline" %>
+  <span class="mx-1">/</span>
+  <%= link_to @product.category.name, products_path(category: @product.category.slug), class: "hover:underline" %>
+  <span class="mx-1">/</span>
+  <span class="text-gray-700"><%= @product.name %></span>
+</nav>
+
+<div class="bg-white rounded shadow p-6 grid md:grid-cols-2 gap-8">
+  <div class="aspect-square bg-gray-200 rounded overflow-hidden">
+    <%= image_tag @product.image_url, alt: @product.name,
+          class: "w-full h-full object-cover" %>
+  </div>
+
+  <div>
+    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1"><%= @product.category.name %></p>
+    <h1 class="text-2xl font-semibold text-gray-900 mb-3"><%= @product.name %></h1>
+    <p class="text-3xl font-bold text-gray-900 mb-3"><%= format_price_cents(@product.price_cents) %></p>
+    <div class="mb-4"><%= stock_badge(@product) %></div>
+
+    <p class="text-gray-700 leading-relaxed mb-6 whitespace-pre-line"><%= @product.description %></p>
+
+    <button type="button" disabled
+      class="w-full sm:w-auto bg-amber-400 text-slate-900 font-semibold px-6 py-3 rounded opacity-60 cursor-not-allowed">
+      Add to Cart
+    </button>
+    <p class="text-sm text-gray-500 mt-2">Cart coming soon.</p>
+  </div>
+</div>

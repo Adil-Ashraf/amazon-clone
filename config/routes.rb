@@ -12,10 +12,11 @@ Rails.application.routes.draw do
   resource :session, only: %i[new create destroy]
   resource :registration, only: %i[new create]
 
-  # Stub routes for phases not built yet, so the nav shell has somewhere to point.
   resources :products, only: %i[index show]
+
+  # Stub route for a phase not built yet, so the nav shell has somewhere to point.
   resource :cart, only: %i[show]
 
   # Defines the root path route ("/")
-  root "pages#home"
+  root "products#index"
 end

@@ -1,0 +1,52 @@
+<% content_for :title, @query.present? ? "Search: #{@query}" : (@selected_category&.name || "All Products") %>
+
+<div class="flex flex-col md:flex-row gap-6">
+  <aside class="md:w-56 shrink-0">
+    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Categories</h2>
+    <ul class="space-y-1">
+      <li>
+        <%= link_to "All Products", products_path(query: @query.presence),
+              class: "block px-2 py-1 rounded text-sm #{@selected_category ? 'text-gray-700 hover:bg-gray-100' : 'bg-slate-900 text-white'}" %>
+      </li>
+      <% @categories.each do |category| %>
+        <li>
+          <%= link_to category.name, products_path(category: category.slug, query: @query.presence),
+                class: "block px-2 py-1 rounded text-sm #{@selected_category == category ? 'bg-slate-900 text-white' : 'text-gray-700 hover:bg-gray-100'}" %>
+        </li>
+      <% end %>
+    </ul>
+  </aside>
+
+  <div class="flex-1">
+    <div class="mb-4 flex items-center justify-between flex-wrap gap-2">
+      <h1 class="text-xl font-semibold text-gray-900">
+        <% if @query.present? %>
+          Search results for &ldquo;<%= @query %>&rdquo;
+        <% else %>
+          <%= @selected_category&.name || "All Products" %>
+        <% end %>
+      </h1>
+      <p class="text-sm text-gray-500"><%= pluralize(@products.size, "product") %></p>
+    </div>
+
+    <% if @products.any? %>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <% @products.each do |product| %>
+          <%= render "product_card", product: product %>
+        <% end %>
+      </div>
+    <% else %>
+      <div class="bg-white rounded shadow p-10 text-center text-gray-600">
+        <% if @query.present? %>
+          <p class="mb-3">No products found for &ldquo;<%= @query %>&rdquo;.</p>
+          <%= link_to "Clear search", products_path(category: @selected_category&.slug), class: "text-blue-600 hover:underline" %>
+        <% elsif @selected_category %>
+          <p class="mb-3">No products in <%= @selected_category.name %> yet.</p>
+          <%= link_to "Browse all products", products_path, class: "text-blue-600 hover:underline" %>
+        <% else %>
+          <p>No products available.</p>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>
