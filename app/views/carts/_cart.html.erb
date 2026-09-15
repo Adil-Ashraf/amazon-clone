@@ -5,9 +5,11 @@
     <% end %>
   </div>
 
-  <div class="mt-6 bg-white rounded shadow p-4 flex items-center justify-between">
+  <div class="mt-6 bg-white rounded shadow p-4 flex items-center justify-between gap-4 flex-wrap">
     <span class="text-lg font-semibold text-gray-900">Total</span>
     <span class="text-2xl font-bold text-gray-900"><%= format_price_cents(cart.total_cents) %></span>
+    <%= link_to "Proceed to Checkout", new_checkout_path,
+          class: "w-full sm:w-auto text-center bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold px-6 py-2 rounded" %>
   </div>
 <% else %>
   <div class="bg-white rounded shadow p-10 text-center text-gray-600">

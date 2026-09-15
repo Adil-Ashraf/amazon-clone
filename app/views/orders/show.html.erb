@@ -1,0 +1,48 @@
+<% content_for :title, "Order ##{@order.id}" %>
+
+<%= link_to "← Back to orders", orders_path, class: "text-sm text-blue-600 hover:underline mb-4 inline-block" %>
+
+<h1 class="text-2xl font-semibold text-gray-900 mb-1">Order #<%= @order.id %></h1>
+<p class="text-sm text-gray-500 mb-6">
+  Placed <%= @order.created_at.strftime("%B %-d, %Y at %-I:%M %p") %> &middot;
+  <span class="font-medium"><%= @order.status.capitalize %></span>
+</p>
+
+<div class="grid md:grid-cols-3 gap-8">
+  <div class="md:col-span-2">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3">Items</h2>
+    <div class="bg-white rounded shadow divide-y divide-gray-100 px-4">
+      <% @order.order_items.includes(:product).each do |item| %>
+        <div class="flex items-center gap-4 py-4">
+          <%= link_to product_path(item.product), class: "shrink-0" do %>
+            <div class="w-16 h-16 bg-gray-200 rounded overflow-hidden">
+              <%= image_tag item.product.image_url, alt: item.product.name, class: "w-full h-full object-cover" %>
+            </div>
+          <% end %>
+          <div class="flex-1 min-w-0">
+            <%= link_to item.product.name, product_path(item.product), class: "font-medium text-gray-900 hover:underline" %>
+            <p class="text-sm text-gray-500">Qty <%= item.quantity %> &times; <%= format_price_cents(item.price_cents) %></p>
+          </div>
+          <p class="font-semibold text-gray-900 whitespace-nowrap"><%= format_price_cents(item.price_cents * item.quantity) %></p>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="mt-4 bg-white rounded shadow p-4 flex items-center justify-between">
+      <span class="font-semibold text-gray-900">Total</span>
+      <span class="text-xl font-bold text-gray-900"><%= format_price_cents(@order.total_cents) %></span>
+    </div>
+  </div>
+
+  <div>
+    <h2 class="text-lg font-semibold text-gray-900 mb-3">Shipping Address</h2>
+    <div class="bg-white rounded shadow p-4 text-sm text-gray-700 space-y-1">
+      <p><%= @order.shipping_name %></p>
+      <p><%= @order.shipping_address_line1 %></p>
+      <% if @order.shipping_address_line2.present? %>
+        <p><%= @order.shipping_address_line2 %></p>
+      <% end %>
+      <p><%= @order.shipping_city %>, <%= @order.shipping_state %> <%= @order.shipping_zip %></p>
+    </div>
+  </div>
+</div>

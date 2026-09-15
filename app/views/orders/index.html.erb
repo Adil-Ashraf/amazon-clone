@@ -1,0 +1,24 @@
+<% content_for :title, "Your Orders" %>
+
+<h1 class="text-2xl font-semibold text-gray-900 mb-6">Your Orders</h1>
+
+<% if @orders.any? %>
+  <div class="bg-white rounded shadow divide-y divide-gray-100">
+    <% @orders.each do |order| %>
+      <%= link_to order_path(order), class: "flex items-center justify-between gap-4 px-4 py-4 hover:bg-gray-50" do %>
+        <div>
+          <p class="font-medium text-gray-900">Order #<%= order.id %></p>
+          <p class="text-sm text-gray-500">
+            <%= order.created_at.strftime("%B %-d, %Y") %> &middot; <%= order.status.capitalize %>
+          </p>
+        </div>
+        <p class="font-semibold text-gray-900 whitespace-nowrap"><%= format_price_cents(order.total_cents) %></p>
+      <% end %>
+    <% end %>
+  </div>
+<% else %>
+  <div class="bg-white rounded shadow p-10 text-center text-gray-600">
+    <p class="mb-3">You haven&rsquo;t placed any orders yet.</p>
+    <%= link_to "Browse products", products_path, class: "text-blue-600 hover:underline" %>
+  </div>
+<% end %>

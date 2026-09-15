@@ -17,6 +17,9 @@ Rails.application.routes.draw do
   resource :cart, only: %i[show]
   resources :cart_items, only: %i[create update destroy]
 
+  resource :checkout, only: %i[new create]
+  resources :orders, only: %i[index show]
+
   # Defines the root path route ("/")
   root "products#index"
 end

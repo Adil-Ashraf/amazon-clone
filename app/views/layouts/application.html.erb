@@ -41,6 +41,7 @@
         <nav class="flex items-center gap-4 whitespace-nowrap ml-auto" aria-label="Account">
           <% if logged_in? %>
             <span class="text-sm">Hello, <%= current_user.name %></span>
+            <%= link_to "Orders", orders_path, class: "text-sm hover:underline" %>
             <%= button_to "Sign Out", session_path, method: :delete,
                   class: "text-sm text-white hover:underline bg-transparent border-0 p-0 cursor-pointer" %>
           <% else %>

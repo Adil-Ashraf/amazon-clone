@@ -1,0 +1,75 @@
+<% content_for :title, "Checkout" %>
+
+<h1 class="text-2xl font-semibold text-gray-900 mb-6">Checkout</h1>
+
+<div class="grid md:grid-cols-3 gap-8">
+  <div class="md:col-span-2">
+    <h2 class="text-lg font-semibold text-gray-900 mb-3">Shipping Address</h2>
+
+    <% if @order.errors.any? %>
+      <div class="mb-4 rounded bg-red-100 text-red-800 px-4 py-2">
+        <ul class="list-disc list-inside">
+          <% @order.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <%= form_with model: @order, url: checkout_path, method: :post, class: "bg-white rounded shadow p-6 space-y-4" do |f| %>
+      <div>
+        <%= f.label :shipping_name, "Full Name", class: "block text-sm font-medium mb-1" %>
+        <%= f.text_field :shipping_name, required: true, class: "w-full rounded border-gray-300 px-3 py-2" %>
+      </div>
+
+      <div>
+        <%= f.label :shipping_address_line1, "Address Line 1", class: "block text-sm font-medium mb-1" %>
+        <%= f.text_field :shipping_address_line1, required: true, class: "w-full rounded border-gray-300 px-3 py-2" %>
+      </div>
+
+      <div>
+        <%= f.label :shipping_address_line2, "Address Line 2 (optional)", class: "block text-sm font-medium mb-1" %>
+        <%= f.text_field :shipping_address_line2, class: "w-full rounded border-gray-300 px-3 py-2" %>
+      </div>
+
+      <div class="grid grid-cols-3 gap-4">
+        <div class="col-span-1">
+          <%= f.label :shipping_city, "City", class: "block text-sm font-medium mb-1" %>
+          <%= f.text_field :shipping_city, required: true, class: "w-full rounded border-gray-300 px-3 py-2" %>
+        </div>
+        <div>
+          <%= f.label :shipping_state, "State", class: "block text-sm font-medium mb-1" %>
+          <%= f.text_field :shipping_state, required: true, class: "w-full rounded border-gray-300 px-3 py-2" %>
+        </div>
+        <div>
+          <%= f.label :shipping_zip, "ZIP", class: "block text-sm font-medium mb-1" %>
+          <%= f.text_field :shipping_zip, required: true, class: "w-full rounded border-gray-300 px-3 py-2" %>
+        </div>
+      </div>
+
+      <div class="border-t pt-4">
+        <h2 class="text-lg font-semibold text-gray-900 mb-2">Payment</h2>
+        <p class="text-sm text-gray-500 mb-4">
+          This is a demo checkout &mdash; no real payment is processed. Clicking "Place Order" completes your order immediately.
+        </p>
+        <%= f.submit "Place Order", class: "w-full bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold py-3 rounded cursor-pointer" %>
+      </div>
+    <% end %>
+  </div>
+
+  <div>
+    <h2 class="text-lg font-semibold text-gray-900 mb-3">Order Summary</h2>
+    <div class="bg-white rounded shadow divide-y divide-gray-100 px-4">
+      <% @cart_items.each do |cart_item| %>
+        <div class="flex justify-between gap-2 py-3 text-sm">
+          <span class="text-gray-700"><%= cart_item.product.name %> &times; <%= cart_item.quantity %></span>
+          <span class="font-medium text-gray-900 whitespace-nowrap"><%= format_price_cents(cart_item.product.price_cents * cart_item.quantity) %></span>
+        </div>
+      <% end %>
+    </div>
+    <div class="mt-4 bg-white rounded shadow p-4 flex items-center justify-between">
+      <span class="font-semibold text-gray-900">Total</span>
+      <span class="text-xl font-bold text-gray-900"><%= format_price_cents(@cart.total_cents) %></span>
+    </div>
+  </div>
+</div>
