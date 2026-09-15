@@ -1,0 +1,6 @@
+<% content_for :title, "Amazon Clone" %>
+
+<div class="bg-white rounded shadow p-6">
+  <h1 class="text-2xl font-semibold mb-2">Welcome<%= ", #{current_user.name}" if logged_in? %>!</h1>
+  <p class="text-gray-600">The product catalog is coming in the next phase.</p>
+</div>

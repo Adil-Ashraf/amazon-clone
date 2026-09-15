@@ -22,8 +22,48 @@
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
   </head>
 
-  <body>
-    <main class="container mx-auto mt-28 px-5 flex">
+  <body class="bg-gray-50 text-gray-900">
+    <header class="bg-slate-900 text-white">
+      <div class="container mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
+        <%= link_to root_path, class: "text-xl font-bold text-white whitespace-nowrap shrink-0" do %>
+          AmazonClone
+        <% end %>
+
+        <%= form_with url: products_path, method: :get, class: "flex flex-1 min-w-[200px] order-3 sm:order-none" do |f| %>
+          <%= f.text_field :query,
+                value: params[:query],
+                placeholder: "Search products...",
+                "aria-label": "Search products",
+                class: "flex-1 rounded-l px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400" %>
+          <%= f.submit "Search", class: "bg-amber-400 text-slate-900 px-4 rounded-r font-semibold hover:bg-amber-300 cursor-pointer" %>
+        <% end %>
+
+        <nav class="flex items-center gap-4 whitespace-nowrap ml-auto" aria-label="Account">
+          <% if logged_in? %>
+            <span class="text-sm">Hello, <%= current_user.name %></span>
+            <%= button_to "Sign Out", session_path, method: :delete,
+                  class: "text-sm text-white hover:underline bg-transparent border-0 p-0 cursor-pointer" %>
+          <% else %>
+            <%= link_to "Sign In", new_session_path, class: "text-sm hover:underline" %>
+            <%= link_to "Sign Up", new_registration_path, class: "text-sm hover:underline" %>
+          <% end %>
+
+          <%= link_to cart_path, class: "flex items-center gap-1 text-sm hover:underline", "aria-label": "Cart" do %>
+            <span aria-hidden="true">🛒</span>
+            <span><%= cart_item_count %></span>
+          <% end %>
+        </nav>
+      </div>
+    </header>
+
+    <main class="container mx-auto mt-6 px-4">
+      <% if notice.present? %>
+        <p class="mb-4 rounded bg-green-100 text-green-800 px-4 py-2"><%= notice %></p>
+      <% end %>
+      <% if alert.present? %>
+        <p class="mb-4 rounded bg-red-100 text-red-800 px-4 py-2"><%= alert %></p>
+      <% end %>
+
       <%= yield %>
     </main>
   </body>

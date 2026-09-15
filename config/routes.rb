@@ -9,6 +9,13 @@ Rails.application.routes.draw do
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
+  resource :session, only: %i[new create destroy]
+  resource :registration, only: %i[new create]
+
+  # Stub routes for phases not built yet, so the nav shell has somewhere to point.
+  resources :products, only: %i[index show]
+  resource :cart, only: %i[show]
+
   # Defines the root path route ("/")
-  # root "posts#index"
+  root "pages#home"
 end
