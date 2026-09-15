@@ -10,7 +10,7 @@
 
 <div class="bg-white rounded shadow p-6 grid md:grid-cols-2 gap-8">
   <div class="aspect-square bg-gray-200 rounded overflow-hidden">
-    <%= image_tag @product.image_url, alt: @product.name,
+    <%= product_image_tag @product, alt: @product.name,
           class: "w-full h-full object-cover" %>
   </div>
 
@@ -28,10 +28,15 @@
         Out of Stock
       </button>
     <% else %>
-      <%= form_with url: cart_items_path, method: :post do |f| %>
+      <%= form_with url: cart_items_path, method: :post, class: "flex flex-wrap items-center gap-3" do |f| %>
         <%= f.hidden_field :product_id, value: @product.id %>
+        <div class="flex items-center gap-2">
+          <%= f.label :quantity, "Qty", class: "text-sm text-gray-700" %>
+          <%= f.number_field :quantity, value: 1, min: 1, max: [ @product.stock, 10 ].min,
+                class: "w-16 rounded border-gray-300 bg-white text-gray-900 px-2 py-2 text-sm" %>
+        </div>
         <%= f.submit "Add to Cart", data: { turbo_submits_with: "Adding..." },
-              class: "w-full sm:w-auto bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold px-6 py-3 rounded cursor-pointer" %>
+              class: "flex-1 sm:flex-none bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold px-6 py-3 rounded cursor-pointer" %>
       <% end %>
     <% end %>
     <div id="add_to_cart_status" class="text-sm mt-2"></div>

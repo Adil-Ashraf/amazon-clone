@@ -16,7 +16,7 @@
         <div class="flex items-center gap-4 py-4">
           <%= link_to product_path(item.product), class: "shrink-0" do %>
             <div class="w-16 h-16 bg-gray-200 rounded overflow-hidden">
-              <%= image_tag item.product.image_url, alt: item.product.name, class: "w-full h-full object-cover" %>
+              <%= product_image_tag item.product, alt: item.product.name, class: "w-full h-full object-cover" %>
             </div>
           <% end %>
           <div class="flex-1 min-w-0">

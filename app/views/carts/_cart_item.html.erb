@@ -1,7 +1,7 @@
 <div id="<%= dom_id(cart_item) %>" class="flex flex-wrap items-center gap-4 py-4">
   <%= link_to product_path(cart_item.product), class: "shrink-0" do %>
     <div class="w-20 h-20 bg-gray-200 rounded overflow-hidden">
-      <%= image_tag cart_item.product.image_url, alt: cart_item.product.name, class: "w-full h-full object-cover" %>
+      <%= product_image_tag cart_item.product, alt: cart_item.product.name, class: "w-full h-full object-cover" %>
     </div>
   <% end %>
 
