@@ -1,18 +1,18 @@
 <% if cart_items.any? %>
-  <div class="bg-white rounded shadow divide-y divide-gray-100 px-4">
+  <div class="<%= card_classes("divide-y divide-gray-100 px-4") %>">
     <% cart_items.each do |cart_item| %>
       <%= render "carts/cart_item", cart_item: cart_item %>
     <% end %>
   </div>
 
-  <div class="mt-6 bg-white rounded shadow p-4 flex items-center justify-between gap-4 flex-wrap">
+  <div class="<%= card_classes("mt-6 p-4 flex items-center justify-between gap-4 flex-wrap") %>">
     <span class="text-lg font-semibold text-gray-900">Total</span>
     <span class="text-2xl font-bold text-gray-900"><%= format_price_cents(cart.total_cents) %></span>
     <%= link_to "Proceed to Checkout", new_checkout_path,
           class: "w-full sm:w-auto text-center bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold px-6 py-2 rounded" %>
   </div>
 <% else %>
-  <div class="bg-white rounded shadow p-10 text-center text-gray-600">
+  <div class="<%= card_classes("p-10 text-center text-gray-600") %>">
     <p class="mb-3">Your cart is empty.</p>
     <%= link_to "Browse products", products_path, class: "text-blue-600 hover:underline" %>
   </div>

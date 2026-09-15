@@ -18,19 +18,17 @@ module ProductsHelper
     "#{start_date.strftime('%a, %b %-d')} – #{end_date.strftime('%a, %b %-d')}"
   end
 
-  # Renders the product's real photo (image_url), falling back client-side to
-  # a generated colored icon card if that photo fails to load -- e.g. the
-  # keyword-matched photo service is down, or a specific keyword has no match.
+  # Every product image is a generated colored tile (category color + icon +
+  # wrapped product name) -- never an external photo. An earlier version
+  # pulled real photos from a keyword-matched photo service, but results were
+  # too often unrelated to the product (sometimes with a baked-in attribution
+  # watermark) with no way to verify either before it rendered. This is fully
+  # self-contained and can never show the wrong thing or fail to load.
   def product_image_tag(product, **options)
-    fallback = product_image_fallback_data_uri(product)
-    options[:onerror] = "this.onerror=null;this.src='#{fallback}';"
-    image_tag product.image_url, **options
+    image_tag product_image_data_uri(product), **options
   end
 
-  # The same colored icon + category color + wrapped product name design used
-  # before real photos were added, kept as the fallback for a broken/missing
-  # photo rather than removed.
-  def product_image_fallback_data_uri(product)
+  def product_image_data_uri(product)
     category = product.category
     icon_inner = CategoriesHelper::ICON_PATHS.fetch(category.icon_key, CategoriesHelper::ICON_PATHS[Category::DEFAULT_ICON_KEY])
     lines = wrap_for_fallback_card(product.name, 20).first(3)

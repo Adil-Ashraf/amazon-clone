@@ -10,21 +10,11 @@
 
 <div class="grid md:grid-cols-3 gap-8">
   <div class="md:col-span-2">
-    <div class="relative aspect-square bg-gray-200 rounded-lg overflow-hidden border border-gray-200">
+    <%# aspect-square + max-h caps the image independently of its (always 640x480,
+        but capped defensively regardless) intrinsic size, so it can never push
+        the page taller than the buy box beside it. %>
+    <div class="<%= card_classes("aspect-square max-h-[560px] overflow-hidden") %>">
       <%= product_image_tag @product, alt: @product.name, class: "w-full h-full object-cover" %>
-      <%# Softens any stray Flickr attribution watermark baked into the bottom of the photo. %>
-      <div class="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/40 to-transparent"></div>
-    </div>
-
-    <div class="flex gap-2 mt-3">
-      <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-md overflow-hidden border-2 border-amber-400">
-        <%= product_image_tag @product, alt: "", class: "w-full h-full object-cover" %>
-      </div>
-      <% 2.times do %>
-        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-md overflow-hidden border border-gray-200 opacity-70">
-          <%= image_tag product_image_fallback_data_uri(@product), alt: "", class: "w-full h-full object-cover" %>
-        </div>
-      <% end %>
     </div>
   </div>
 
@@ -33,7 +23,7 @@
     <h1 class="text-2xl font-semibold text-gray-900 mb-3"><%= @product.name %></h1>
     <p class="text-gray-700 leading-relaxed whitespace-pre-line"><%= @product.description %></p>
 
-    <div class="border border-gray-300 rounded-lg shadow-sm p-4 mt-6 bg-white">
+    <div class="<%= card_classes("p-4 mt-6") %>">
       <p class="text-3xl font-bold text-gray-900 mb-2"><%= format_price_cents(@product.price_cents) %></p>
       <div class="mb-3"><%= stock_badge(@product) %></div>
 

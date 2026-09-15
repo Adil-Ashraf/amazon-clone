@@ -11,7 +11,7 @@
 <div class="grid md:grid-cols-3 gap-8">
   <div class="md:col-span-2">
     <h2 class="text-lg font-semibold text-gray-900 mb-3">Items</h2>
-    <div class="bg-white rounded shadow divide-y divide-gray-100 px-4">
+    <div class="<%= card_classes("divide-y divide-gray-100 px-4") %>">
       <% @order.order_items.includes(:product).each do |item| %>
         <div class="flex items-center gap-4 py-4">
           <%= link_to product_path(item.product), class: "shrink-0" do %>
@@ -28,7 +28,7 @@
       <% end %>
     </div>
 
-    <div class="mt-4 bg-white rounded shadow p-4 flex items-center justify-between">
+    <div class="<%= card_classes("mt-4 p-4 flex items-center justify-between") %>">
       <span class="font-semibold text-gray-900">Total</span>
       <span class="text-xl font-bold text-gray-900"><%= format_price_cents(@order.total_cents) %></span>
     </div>
@@ -36,7 +36,7 @@
 
   <div>
     <h2 class="text-lg font-semibold text-gray-900 mb-3">Shipping Address</h2>
-    <div class="bg-white rounded shadow p-4 text-sm text-gray-700 space-y-1">
+    <div class="<%= card_classes("p-4 text-sm text-gray-700 space-y-1") %>">
       <p><%= @order.shipping_name %></p>
       <p><%= @order.shipping_address_line1 %></p>
       <% if @order.shipping_address_line2.present? %>
