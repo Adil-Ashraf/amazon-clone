@@ -38,15 +38,22 @@
             <%= @selected_category&.name || "All Products" %>
           <% end %>
         </h1>
-        <p class="text-sm text-gray-500"><%= pluralize(@products.size, "product") %></p>
+        <p class="text-sm text-gray-500">
+          <% if @pagy.count.zero? %>
+            0 products
+          <% else %>
+            Showing <%= @pagy.from %>&ndash;<%= @pagy.to %> of <%= pluralize(@pagy.count, "product") %>
+          <% end %>
+        </p>
       </div>
 
       <% if @products.any? %>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
           <% @products.each do |product| %>
             <%= render "product_card", product: product %>
           <% end %>
         </div>
+        <%= render "pagination", pagy: @pagy %>
       <% else %>
         <div class="bg-white rounded shadow p-10 text-center text-gray-600">
           <% if @query.present? %>

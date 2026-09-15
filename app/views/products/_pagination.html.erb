@@ -1,0 +1,23 @@
+<% if pagy.last > 1 %>
+  <nav class="mt-8 flex items-center justify-center gap-1 flex-wrap" aria-label="Pagination">
+    <% if pagy.previous %>
+      <%= link_to "Prev", pagy.page_url(:previous), class: "px-3 py-1.5 rounded text-sm font-medium text-gray-700 hover:bg-gray-100" %>
+    <% else %>
+      <span class="px-3 py-1.5 rounded text-sm font-medium text-gray-300 cursor-not-allowed">Prev</span>
+    <% end %>
+
+    <% (1..pagy.last).each do |page_number| %>
+      <% if page_number == pagy.page %>
+        <span class="px-3 py-1.5 rounded text-sm font-semibold bg-slate-900 text-white" aria-current="page"><%= page_number %></span>
+      <% else %>
+        <%= link_to page_number, pagy.page_url(page_number), class: "px-3 py-1.5 rounded text-sm font-medium text-gray-700 hover:bg-gray-100" %>
+      <% end %>
+    <% end %>
+
+    <% if pagy.next %>
+      <%= link_to "Next", pagy.page_url(:next), class: "px-3 py-1.5 rounded text-sm font-medium text-gray-700 hover:bg-gray-100" %>
+    <% else %>
+      <span class="px-3 py-1.5 rounded text-sm font-medium text-gray-300 cursor-not-allowed">Next</span>
+    <% end %>
+  </nav>
+<% end %>
