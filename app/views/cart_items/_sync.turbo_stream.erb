@@ -1,0 +1,9 @@
+<%= turbo_stream.replace "cart_count" do %>
+  <span id="cart_count"><%= cart_item_count %></span>
+<% end %>
+
+<%= turbo_stream.replace "cart_items" do %>
+  <div id="cart_items">
+    <%= render "carts/cart", cart: @cart, cart_items: @cart_items %>
+  </div>
+<% end %>

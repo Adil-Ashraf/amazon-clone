@@ -1,0 +1,7 @@
+<%= render "sync" %>
+
+<%= turbo_stream.update "cart_flash" do %>
+  <% if @cart_flash_message.present? %>
+    <p class="rounded px-4 py-2 <%= @cart_flash_class %>"><%= @cart_flash_message %></p>
+  <% end %>
+<% end %>

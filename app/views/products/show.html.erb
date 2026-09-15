@@ -22,10 +22,18 @@
 
     <p class="text-gray-700 leading-relaxed mb-6 whitespace-pre-line"><%= @product.description %></p>
 
-    <button type="button" disabled
-      class="w-full sm:w-auto bg-amber-400 text-slate-900 font-semibold px-6 py-3 rounded opacity-60 cursor-not-allowed">
-      Add to Cart
-    </button>
-    <p class="text-sm text-gray-500 mt-2">Cart coming soon.</p>
+    <% if @product.out_of_stock? %>
+      <button type="button" disabled
+        class="w-full sm:w-auto bg-gray-300 text-gray-500 font-semibold px-6 py-3 rounded cursor-not-allowed">
+        Out of Stock
+      </button>
+    <% else %>
+      <%= form_with url: cart_items_path, method: :post do |f| %>
+        <%= f.hidden_field :product_id, value: @product.id %>
+        <%= f.submit "Add to Cart",
+              class: "w-full sm:w-auto bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold px-6 py-3 rounded cursor-pointer" %>
+      <% end %>
+    <% end %>
+    <div id="add_to_cart_status" class="text-sm mt-2"></div>
   </div>
 </div>

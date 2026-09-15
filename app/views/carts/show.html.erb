@@ -1,0 +1,9 @@
+<% content_for :title, "Your Cart" %>
+
+<h1 class="text-2xl font-semibold text-gray-900 mb-4">Your Cart</h1>
+
+<div id="cart_flash" class="mb-4"></div>
+
+<div id="cart_items">
+  <%= render "cart", cart: @cart, cart_items: @cart_items %>
+</div>

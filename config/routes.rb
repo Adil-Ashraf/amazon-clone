@@ -14,8 +14,8 @@ Rails.application.routes.draw do
 
   resources :products, only: %i[index show]
 
-  # Stub route for a phase not built yet, so the nav shell has somewhere to point.
   resource :cart, only: %i[show]
+  resources :cart_items, only: %i[create update destroy]
 
   # Defines the root path route ("/")
   root "products#index"

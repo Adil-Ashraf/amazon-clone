@@ -50,7 +50,7 @@
 
           <%= link_to cart_path, class: "flex items-center gap-1 text-sm hover:underline", "aria-label": "Cart" do %>
             <span aria-hidden="true">🛒</span>
-            <span><%= cart_item_count %></span>
+            <span id="cart_count"><%= cart_item_count %></span>
           <% end %>
         </nav>
       </div>
