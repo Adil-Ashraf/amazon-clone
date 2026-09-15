@@ -1,35 +1,42 @@
 <% content_for :title, @query.present? ? "Search: #{@query}" : (@selected_category&.name || "All Products") %>
 
-<div class="flex flex-col md:flex-row gap-6">
-  <aside class="md:w-56 shrink-0">
-    <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Categories</h2>
-    <ul class="flex md:flex-col gap-2 md:gap-1 overflow-x-auto md:overflow-visible -mx-4 px-4 md:mx-0 md:px-0 pb-2 md:pb-0">
-      <li class="shrink-0">
-        <%= link_to products_path(query: @query.presence), data: { turbo_frame: "products_results" },
-              class: "flex items-center gap-2 px-3 py-1.5 rounded-full md:rounded whitespace-nowrap text-sm #{@selected_category ? 'text-gray-700 hover:bg-gray-100 bg-gray-100 md:bg-transparent' : 'bg-slate-900 text-white'}" do %>
-          <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="3" y="3" width="8" height="8" rx="1"/>
-            <rect x="13" y="3" width="8" height="8" rx="1"/>
-            <rect x="3" y="13" width="8" height="8" rx="1"/>
-            <rect x="13" y="13" width="8" height="8" rx="1"/>
-          </svg>
-          All Products
-        <% end %>
-      </li>
-      <% @categories.each do |category| %>
+<%# The sidebar lives INSIDE this frame -- it must re-render on every category
+    click alongside the grid, atomically, from the same response. Previously it
+    sat outside the frame as a sibling, so a Turbo-Frame-scoped category click
+    only swapped the grid; the sidebar's server-rendered active-state class
+    (comparing @selected_category against each category) never got a chance to
+    re-run, so the highlight stayed frozen at whatever it was on the last full
+    page load. %>
+<%= turbo_frame_tag "products_results", data: { turbo_action: "advance" } do %>
+  <div class="flex flex-col md:flex-row gap-6">
+    <aside class="md:w-56 shrink-0">
+      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Categories</h2>
+      <ul class="flex md:flex-col gap-2 md:gap-1 overflow-x-auto md:overflow-visible -mx-4 px-4 md:mx-0 md:px-0 pb-2 md:pb-0">
         <li class="shrink-0">
-          <%= link_to products_path(category: category.slug, query: @query.presence), data: { turbo_frame: "products_results" },
-                class: "flex items-center gap-2 px-3 py-1.5 rounded-full md:rounded whitespace-nowrap text-sm #{@selected_category == category ? 'bg-slate-900 text-white' : 'text-gray-700 hover:bg-gray-100 bg-gray-100 md:bg-transparent'}" do %>
-            <%= category_icon(category, css_class: "w-4 h-4 shrink-0") %>
-            <%= category.name %>
+          <%= link_to products_path(query: @query.presence), data: { turbo_frame: "products_results" },
+                class: "flex items-center gap-2 px-3 py-1.5 rounded-full md:rounded whitespace-nowrap text-sm #{@selected_category ? 'text-gray-700 hover:bg-gray-100 bg-gray-100 md:bg-transparent' : 'bg-slate-900 text-white'}" do %>
+            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="3" width="8" height="8" rx="1"/>
+              <rect x="13" y="3" width="8" height="8" rx="1"/>
+              <rect x="3" y="13" width="8" height="8" rx="1"/>
+              <rect x="13" y="13" width="8" height="8" rx="1"/>
+            </svg>
+            All Products
           <% end %>
         </li>
-      <% end %>
-    </ul>
-  </aside>
+        <% @categories.each do |category| %>
+          <li class="shrink-0">
+            <%= link_to products_path(category: category.slug, query: @query.presence), data: { turbo_frame: "products_results" },
+                  class: "flex items-center gap-2 px-3 py-1.5 rounded-full md:rounded whitespace-nowrap text-sm #{@selected_category == category ? 'bg-slate-900 text-white' : 'text-gray-700 hover:bg-gray-100 bg-gray-100 md:bg-transparent'}" do %>
+              <%= category_icon(category, css_class: "w-4 h-4 shrink-0") %>
+              <%= category.name %>
+            <% end %>
+          </li>
+        <% end %>
+      </ul>
+    </aside>
 
-  <div class="flex-1">
-    <%= turbo_frame_tag "products_results", data: { turbo_action: "advance" } do %>
+    <div class="flex-1">
       <div class="mb-4 flex items-center justify-between flex-wrap gap-2">
         <h1 class="text-xl font-semibold text-gray-900">
           <% if @query.present? %>
@@ -67,6 +74,6 @@
           <% end %>
         </div>
       <% end %>
-    <% end %>
+    </div>
   </div>
-</div>
+<% end %>

@@ -2,7 +2,7 @@
       class: card_classes("group block hover:shadow-md transition-shadow overflow-hidden") do %>
   <div class="aspect-[4/3] bg-gray-200">
     <%= product_image_tag product, alt: product.name, loading: "lazy",
-          class: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" %>
+          class: "group-hover:scale-105 transition-transform duration-200" %>
   </div>
   <div class="p-4">
     <p class="text-xs text-gray-500 uppercase tracking-wide mb-1"><%= product.category.name %></p>

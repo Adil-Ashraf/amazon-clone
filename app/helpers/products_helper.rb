@@ -18,57 +18,55 @@ module ProductsHelper
     "#{start_date.strftime('%a, %b %-d')} – #{end_date.strftime('%a, %b %-d')}"
   end
 
-  # Every product image is a generated colored tile (category color + icon +
-  # wrapped product name) -- never an external photo. An earlier version
-  # pulled real photos from a keyword-matched photo service, but results were
-  # too often unrelated to the product (sometimes with a baked-in attribution
-  # watermark) with no way to verify either before it rendered. This is fully
-  # self-contained and can never show the wrong thing or fail to load.
+  # Every product shows one of its category's verified representative photos
+  # (Category#representative_image_url -- hardcoded, hand-checked Unsplash
+  # URLs, not a per-product keyword search that could return anything),
+  # picked deterministically per product so sibling products don't all show
+  # the identical photo. Renders as two stacked layers filling the caller's
+  # fixed-size container (the caller is always a fixed-width/height or
+  # aspect-ratio div -- product grid card, detail page, cart line item, order
+  # line item): a generated colored tile (category color + icon) underneath,
+  # sized with object-contain since it's a centered icon that must never be
+  # cropped, and the real photo on top sized with object-cover so it always
+  # fills the box edge-to-edge regardless of its native aspect ratio. If the
+  # real photo fails to load, onerror hides it, revealing the tile beneath --
+  # the box itself never changes size or shape either way.
   def product_image_tag(product, **options)
-    image_tag product_image_data_uri(product), **options
+    category = product.category
+    alt_text = options.delete(:alt) || product.name
+    extra_class = options.delete(:class)
+    real_url = category.representative_image_url(product.id)
+
+    fallback_img = image_tag product_image_data_uri(product), alt: "", aria: { hidden: true },
+      class: "absolute inset-0 w-full h-full object-contain"
+
+    real_img = if real_url
+      image_tag real_url, **options, alt: alt_text,
+        class: [ "absolute inset-0 w-full h-full object-cover", extra_class ].compact.join(" "),
+        onerror: "this.style.display='none';"
+    end
+
+    content_tag :div, safe_join([ fallback_img, real_img ].compact),
+      class: "relative w-full h-full overflow-hidden", style: "background-color: #{category.color_hex}"
   end
+
+  private
 
   def product_image_data_uri(product)
     category = product.category
     icon_inner = CategoriesHelper::ICON_PATHS.fetch(category.icon_key, CategoriesHelper::ICON_PATHS[Category::DEFAULT_ICON_KEY])
-    lines = wrap_for_fallback_card(product.name, 20).first(3)
-
-    text_svg = lines.each_with_index.map do |line, i|
-      y = 236 + (i * 26)
-      %(<text x="200" y="#{y}" font-family="Helvetica, Arial, sans-serif" font-size="19" font-weight="600" fill="#ffffff" text-anchor="middle">#{ERB::Util.html_escape(line)}</text>)
-    end.join
 
     svg = <<~SVG
       <svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 400 300">
         <rect width="400" height="300" fill="#{category.color_hex}"/>
         <rect width="400" height="300" fill="#000000" opacity="0.08"/>
-        <g transform="translate(152,58) scale(4)" color="#ffffff" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">
+        <g transform="translate(152,102) scale(4)" color="#ffffff" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">
           #{icon_inner}
         </g>
-        #{text_svg}
       </svg>
     SVG
 
     "data:image/svg+xml,#{ERB::Util.url_encode(svg)}"
-  end
-
-  private
-
-  def wrap_for_fallback_card(text, max_chars)
-    lines = []
-    current = +""
-
-    text.split(" ").each do |word|
-      candidate = current.empty? ? word : "#{current} #{word}"
-      if candidate.length > max_chars && !current.empty?
-        lines << current
-        current = +word
-      else
-        current = candidate
-      end
-    end
-    lines << current unless current.empty?
-    lines
   end
 
   def stock_badge_pill(text, color_classes)
