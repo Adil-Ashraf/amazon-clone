@@ -1,5 +1,5 @@
 <%= turbo_stream.replace "cart_count" do %>
-  <span id="cart_count"><%= cart_item_count %></span>
+  <%= render "shared/cart_count_badge" %>
 <% end %>
 
 <%= turbo_stream.replace "cart_items" do %>

@@ -1,0 +1,4 @@
+<span id="cart_count"
+      class="absolute -top-2 -right-2 min-w-[1.1rem] h-[1.1rem] flex items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white <%= "hidden" if cart_item_count.zero? %>">
+  <%= cart_item_count %>
+</span>

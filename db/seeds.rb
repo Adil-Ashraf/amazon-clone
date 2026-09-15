@@ -1,8 +1,48 @@
 # This file seeds a realistic catalog so the app doesn't look empty on first run.
 # Safe to run repeatedly: everything is looked up with find_or_create_by!.
 
-def picsum_url_for(name)
-  "https://picsum.photos/seed/#{name.parameterize}/640/480"
+# Generates a colored placeholder image (category icon + wrapped product name)
+# as an inline SVG data URI, instead of pulling random unrelated stock photos
+# from an external API. Deterministic, so re-running seeds always produces the
+# same image for the same product/category.
+def placeholder_image_data_uri(product_name, category)
+  icon_inner = CategoriesHelper::ICON_PATHS.fetch(category.icon_key, CategoriesHelper::ICON_PATHS[Category::DEFAULT_ICON_KEY])
+  lines = wrap_for_placeholder(product_name, 20).first(3)
+
+  text_svg = lines.each_with_index.map do |line, i|
+    y = 236 + (i * 26)
+    %(<text x="200" y="#{y}" font-family="Helvetica, Arial, sans-serif" font-size="19" font-weight="600" fill="#ffffff" text-anchor="middle">#{ERB::Util.html_escape(line)}</text>)
+  end.join
+
+  svg = <<~SVG
+    <svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 400 300">
+      <rect width="400" height="300" fill="#{category.color_hex}"/>
+      <rect width="400" height="300" fill="#000000" opacity="0.08"/>
+      <g transform="translate(152,58) scale(4)" color="#ffffff" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round">
+        #{icon_inner}
+      </g>
+      #{text_svg}
+    </svg>
+  SVG
+
+  "data:image/svg+xml,#{ERB::Util.url_encode(svg)}"
+end
+
+def wrap_for_placeholder(text, max_chars)
+  lines = []
+  current = +""
+
+  text.split(" ").each do |word|
+    candidate = current.empty? ? word : "#{current} #{word}"
+    if candidate.length > max_chars && !current.empty?
+      lines << current
+      current = +word
+    else
+      current = candidate
+    end
+  end
+  lines << current unless current.empty?
+  lines
 end
 
 CATEGORIES_WITH_PRODUCTS = {
@@ -62,13 +102,15 @@ CATEGORIES_WITH_PRODUCTS.each do |category_name, products|
   end
 
   products.each do |product_attrs|
-    Product.find_or_create_by!(name: product_attrs[:name]) do |product|
-      product.description = product_attrs[:description]
-      product.price_cents = product_attrs[:price_cents]
-      product.stock = product_attrs[:stock]
-      product.category = category
-      product.image_url = picsum_url_for(product_attrs[:name])
+    product = Product.find_or_create_by!(name: product_attrs[:name]) do |new_product|
+      new_product.description = product_attrs[:description]
+      new_product.price_cents = product_attrs[:price_cents]
+      new_product.stock = product_attrs[:stock]
+      new_product.category = category
     end
+    # Always refresh the placeholder image, so re-seeding an existing database
+    # (e.g. after this generator changes) replaces any old image_url too.
+    product.update!(image_url: placeholder_image_data_uri(product.name, category))
   end
 end
 

@@ -1,11 +1,20 @@
 module ProductsHelper
   def stock_badge(product)
     if product.out_of_stock?
-      content_tag :span, "Out of Stock", class: "text-sm font-medium text-red-600"
+      stock_badge_pill("Out of Stock", "bg-red-100 text-red-800")
     elsif product.low_stock?
-      content_tag :span, "Only #{product.stock} left", class: "text-sm font-medium text-amber-600"
+      stock_badge_pill("Only #{product.stock} left", "bg-amber-100 text-amber-800")
     else
-      content_tag :span, "In Stock", class: "text-sm font-medium text-green-700"
+      stock_badge_pill("In Stock", "bg-green-100 text-green-800")
+    end
+  end
+
+  private
+
+  def stock_badge_pill(text, color_classes)
+    content_tag :span, class: "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold #{color_classes}" do
+      concat content_tag(:span, "", class: "w-1.5 h-1.5 rounded-full bg-current")
+      concat text
     end
   end
 end

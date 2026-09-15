@@ -11,31 +11,31 @@
     <%= form_with model: @order, url: checkout_path, method: :post, class: "bg-white rounded shadow p-6 space-y-4" do |f| %>
       <div>
         <%= f.label :shipping_name, "Full Name", class: "block text-sm font-medium mb-1" %>
-        <%= f.text_field :shipping_name, required: true, class: "w-full rounded border-gray-300 px-3 py-2" %>
+        <%= f.text_field :shipping_name, required: true, class: "w-full rounded border-gray-300 bg-white text-gray-900 px-3 py-2" %>
       </div>
 
       <div>
         <%= f.label :shipping_address_line1, "Address Line 1", class: "block text-sm font-medium mb-1" %>
-        <%= f.text_field :shipping_address_line1, required: true, class: "w-full rounded border-gray-300 px-3 py-2" %>
+        <%= f.text_field :shipping_address_line1, required: true, class: "w-full rounded border-gray-300 bg-white text-gray-900 px-3 py-2" %>
       </div>
 
       <div>
         <%= f.label :shipping_address_line2, "Address Line 2 (optional)", class: "block text-sm font-medium mb-1" %>
-        <%= f.text_field :shipping_address_line2, class: "w-full rounded border-gray-300 px-3 py-2" %>
+        <%= f.text_field :shipping_address_line2, class: "w-full rounded border-gray-300 bg-white text-gray-900 px-3 py-2" %>
       </div>
 
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div class="sm:col-span-1">
           <%= f.label :shipping_city, "City", class: "block text-sm font-medium mb-1" %>
-          <%= f.text_field :shipping_city, required: true, class: "w-full rounded border-gray-300 px-3 py-2" %>
+          <%= f.text_field :shipping_city, required: true, class: "w-full rounded border-gray-300 bg-white text-gray-900 px-3 py-2" %>
         </div>
         <div>
           <%= f.label :shipping_state, "State", class: "block text-sm font-medium mb-1" %>
-          <%= f.text_field :shipping_state, required: true, class: "w-full rounded border-gray-300 px-3 py-2" %>
+          <%= f.text_field :shipping_state, required: true, class: "w-full rounded border-gray-300 bg-white text-gray-900 px-3 py-2" %>
         </div>
         <div>
           <%= f.label :shipping_zip, "ZIP", class: "block text-sm font-medium mb-1" %>
-          <%= f.text_field :shipping_zip, required: true, class: "w-full rounded border-gray-300 px-3 py-2" %>
+          <%= f.text_field :shipping_zip, required: true, class: "w-full rounded border-gray-300 bg-white text-gray-900 px-3 py-2" %>
         </div>
       </div>
 

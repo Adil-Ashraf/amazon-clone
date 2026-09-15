@@ -7,13 +7,13 @@
     <div class="mb-4">
       <%= f.label :email, class: "block text-sm font-medium mb-1" %>
       <%= f.email_field :email, required: true, autofocus: true,
-            class: "w-full rounded border-gray-300 px-3 py-2" %>
+            class: "w-full rounded border-gray-300 bg-white text-gray-900 px-3 py-2" %>
     </div>
 
     <div class="mb-4">
       <%= f.label :password, class: "block text-sm font-medium mb-1" %>
       <%= f.password_field :password, required: true,
-            class: "w-full rounded border-gray-300 px-3 py-2" %>
+            class: "w-full rounded border-gray-300 bg-white text-gray-900 px-3 py-2" %>
     </div>
 
     <%= f.submit "Sign In", data: { turbo_submits_with: "Signing In..." },

@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+/* This app only has a light design. Without this, browsers that are in system
+   dark mode auto-style native form controls (inputs, buttons) with a dark
+   background, which combined with our explicit dark text classes made typed
+   text unreadable -- the control's own background went dark while our CSS
+   still forced dark text on top of it. */
+:root {
+  color-scheme: light;
+}
+
 /* Subtle loading feedback while a Turbo Frame (e.g. live search/category
    filtering) is fetching its replacement content. */
 turbo-frame[busy] {
