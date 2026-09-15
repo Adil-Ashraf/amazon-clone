@@ -8,22 +8,26 @@
   <span class="text-gray-700"><%= @product.name %></span>
 </nav>
 
-<div class="grid md:grid-cols-3 gap-8">
-  <div class="md:col-span-2">
-    <%# aspect-square + max-h caps the image independently of its (always 640x480,
-        but capped defensively regardless) intrinsic size, so it can never push
-        the page taller than the buy box beside it. %>
-    <div class="<%= card_classes("aspect-square max-h-[560px] overflow-hidden") %>">
+<div class="grid gap-8 md:grid-cols-[3fr_2fr]">
+  <div class="w-full">
+    <%# A fixed pixel height (per breakpoint) rather than aspect-square -- aspect-square
+        combined with a max-height clamp fights itself: the browser derives height from
+        the column's full width first, then clamps it, then RE-derives a narrower width
+        from that clamped height to preserve the square ratio, shrinking the box well
+        below the column's real width and leaving a large empty gap beside it. A fixed
+        height has no such feedback loop: width always fills the grid column exactly,
+        height is always the same value, and object-cover crops any source photo to fit. %>
+    <div class="<%= card_classes("w-full h-[420px] sm:h-[480px] lg:h-[560px] overflow-hidden") %>">
       <%= product_image_tag @product, alt: @product.name %>
     </div>
   </div>
 
-  <div>
+  <div class="w-full">
     <p class="text-xs text-gray-500 uppercase tracking-wide mb-1"><%= @product.category.name %></p>
     <h1 class="text-2xl font-semibold text-gray-900 mb-3"><%= @product.name %></h1>
     <p class="text-gray-700 leading-relaxed whitespace-pre-line"><%= @product.description %></p>
 
-    <div class="<%= card_classes("p-4 mt-6") %>">
+    <div class="<%= card_classes("w-full p-4 mt-6") %>">
       <p class="text-3xl font-bold text-gray-900 mb-2"><%= format_price_cents(@product.price_cents) %></p>
       <div class="mb-3"><%= stock_badge(@product) %></div>
 
