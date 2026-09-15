@@ -9,10 +9,10 @@ class CartItemsController < ApplicationController
     begin
       Carts::CartService.new(@cart).add_item(product: product, quantity: quantity)
       @status_message = "Added to cart."
-      @status_class = "text-green-700"
+      @status_variant = :success
     rescue Carts::CartService::InsufficientStockError => e
       @status_message = e.message
-      @status_class = "text-red-600"
+      @status_variant = :error
     end
 
     load_cart_items

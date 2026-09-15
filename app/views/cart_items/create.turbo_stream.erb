@@ -1,5 +1,5 @@
 <%= render "sync" %>
 
 <%= turbo_stream.update "add_to_cart_status" do %>
-  <p class="<%= @status_class %>"><%= @status_message %></p>
+  <%= render "shared/toast", variant: @status_variant, message: @status_message %>
 <% end %>

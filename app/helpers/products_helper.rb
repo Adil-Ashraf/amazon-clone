@@ -9,6 +9,15 @@ module ProductsHelper
     end
   end
 
+  # A realistic-looking (but not real, no logistics behind it) delivery
+  # estimate, recomputed from today's date each render rather than hardcoded
+  # so it never looks stale.
+  def estimated_delivery_range
+    start_date = 3.days.from_now.to_date
+    end_date = 5.days.from_now.to_date
+    "#{start_date.strftime('%a, %b %-d')} – #{end_date.strftime('%a, %b %-d')}"
+  end
+
   # Renders the product's real photo (image_url), falling back client-side to
   # a generated colored icon card if that photo fails to load -- e.g. the
   # keyword-matched photo service is down, or a specific keyword has no match.
