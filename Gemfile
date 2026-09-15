@@ -5,7 +5,7 @@ gem "rails", "~> 8.1.3", ">= 8.1.3.1"
 # Pin below 3.0: json 3.x dropped the positional-options JSON.parse(str, opts) signature
 # that ActiveSupport::JSON.decode still calls, breaking every encrypted cookie read (see
 # https://github.com/ruby/json/issues -- json 3.0 made `parse`'s options keyword-only).
-gem "json", "~> 2.21"
+gem "json", "~> 3.0"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use postgresql as the database for Active Record
