@@ -1,17 +1,19 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+#
+# No image_url/image_keyword -- those columns were dropped (see
+# db/migrate/20260915132715_remove_image_fields_from_products.rb); every
+# product image is generated/looked up from its category, not stored here.
 
-one:
-  name: MyString
-  description: MyText
-  price_cents: 1
-  stock: 1
-  category: one
-  image_url: MyString
+headphones:
+  name: Fixture Wireless Headphones
+  description: Over-ear Bluetooth headphones used only in tests.
+  price_cents: 9999
+  stock: 10
+  category: electronics
 
-two:
-  name: MyString
-  description: MyText
-  price_cents: 1
-  stock: 1
-  category: two
-  image_url: MyString
+novel:
+  name: Fixture Test-Driven Novel
+  description: A paperback novel used only in tests.
+  price_cents: 1499
+  stock: 3
+  category: books

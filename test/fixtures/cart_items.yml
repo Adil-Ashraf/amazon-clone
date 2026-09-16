@@ -2,10 +2,10 @@
 
 one:
   cart: one
-  product: one
+  product: headphones
   quantity: 1
 
 two:
   cart: two
-  product: two
+  product: novel
   quantity: 1
