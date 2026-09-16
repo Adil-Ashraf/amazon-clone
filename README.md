@@ -4,9 +4,9 @@ A scoped rebuild of Amazon's core purchase flow — browse, search, cart, checko
 
 ## Live Link
 
-**Live app:** [PASTE RAILWAY URL HERE]
+**Live app:** https://amazon-clone-production-4093.up.railway.app/
 
-**Repository:** [PASTE REPO URL HERE]
+**Repository:** https://github.com/Adil-Ashraf/amazon-clone
 
 ## What This Is
 
