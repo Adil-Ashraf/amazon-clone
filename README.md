@@ -24,8 +24,8 @@ Instead, this rebuilds the one loop that makes Amazon *Amazon*: a signed-in user
 - Product grid with category filtering (8 categories, 110 seeded products)
 - Full-text search via Postgres (`pg_search`, prefix-matching `tsearch` against name + description) — not a `LIKE '%query%'` substring match
 - 24-item pagination (`pagy`) that preserves the active category/search filter across pages, and redirects to the last valid page if a stale `?page=` param points past the end of the result set
-- Product detail page with description, price, live stock badge, and a real photo (see below)
-- Every product image is a category-cycled, hand-verified Unsplash photo laid over a generated color-tile fallback — if the real photo ever fails to load, the tile (category color + icon, `object-contain` so nothing crops) takes its place with zero layout shift, since both layers render into the same fixed-size box
+- Product detail page with description, price, live stock badge, and a verified photo (see below)
+- Every product shows one photo that was checked by eye to show that kind of product (`db/seeds/product_images.yml`), or an honest designed tile (category tint + icon) when no photo could be verified. The photo is layered over the tile in the same fixed-size box, so a failed load falls back to the tile with zero layout shift
 
 **Cart**
 - Add, remove, update quantity — all validated against live stock
@@ -148,3 +148,7 @@ With more time, in roughly this order:
 2. **Real payment integration** — Stripe in test mode, done properly: webhooks for async confirmation, idempotency keys on the charge, and a payment-failed state that doesn't just fall through to "order placed."
 3. **Reviews and ratings** — with real moderation and verified-purchase gating, not a decorative star widget.
 4. **Seller accounts** — the actual second product hinted at above: listings, seller-owned inventory, and a dashboard, kept clearly separate from the buyer-facing purchase flow this submission focuses on.
+
+## Credits
+
+Product photos from Unsplash (Unsplash License).

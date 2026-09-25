@@ -20,14 +20,33 @@ module ProductsHelper
     "#{start_date.strftime('%a, %b %-d')} – #{end_date.strftime('%a, %b %-d')}"
   end
 
-  # Every product is shown as a designed tile rather than a photo: the catalog
-  # has no real product photos, and a photo of a different item would be a
-  # fake signal (docs/DESIGN.md). The tile is a light tint of the category
-  # colour, the category's line icon centred in that colour, and the first
-  # words of the product name in the corner once the box is wide enough (a
-  # container query, so bag thumbnails stay clean). It fills whatever
-  # fixed-size box the caller provides and makes no external requests.
-  def product_image_tag(product, alt: nil, css_class: nil)
+  # A product's image inside the caller's fixed-size box (grid card, product
+  # page, bag, orders). The designed tile -- a light tint of the category
+  # colour, the category's line icon and the first words of the name -- is
+  # always rendered. When the product has a verified photo (image_url, see
+  # db/seeds/product_images.yml) it is layered on top with object-cover, and
+  # the tile is hidden from assistive tech; if the photo fails to load, the
+  # product-image Stimulus controller removes it and the tile shows through
+  # with no layout shift. We never show a photo of a different item: that
+  # would be a fake signal (docs/DESIGN.md).
+  def product_image_tag(product, alt: nil, css_class: nil, loading: "lazy")
+    name = alt || product.name
+    wrapper_class = "@container relative w-full h-full overflow-hidden"
+    tile = product_tile(product, name: name, css_class: css_class, covered: product.image_url.present?)
+    return content_tag(:div, tile, class: wrapper_class) if product.image_url.blank?
+
+    photo = image_tag(product.image_url, alt: name, loading: loading, decoding: "async",
+      class: [ "absolute inset-0 w-full h-full object-cover", css_class ].compact.join(" "),
+      data: { product_image_target: "photo", action: "error->product-image#fallback" })
+
+    content_tag :div, safe_join([ tile, photo ]), class: wrapper_class, data: { controller: "product-image" }
+  end
+
+  private
+
+  # The designed tile. `covered` means a photo sits on top of it, so the tile
+  # is hidden from assistive tech until the photo fails.
+  def product_tile(product, name:, css_class:, covered:)
     category = product.category
     icon_inner = CategoriesHelper::ICON_PATHS.fetch(category.icon_key, CategoriesHelper::ICON_PATHS[Category::DEFAULT_ICON_KEY])
 
@@ -40,15 +59,12 @@ module ProductsHelper
       class: "absolute bottom-3 left-3 right-3 hidden truncate font-display text-lg leading-tight text-ink/70 @[12rem]:block",
       "aria-hidden": "true")
 
-    content_tag :div, class: "@container relative w-full h-full overflow-hidden" do
-      content_tag :div, safe_join([ icon, label ]),
-        role: "img", "aria-label": alt || product.name,
-        class: [ "flex w-full h-full items-center justify-center", css_class ].compact.join(" "),
-        style: "background-color: #{category_tint(category.color_hex)}"
-    end
+    content_tag :div, safe_join([ icon, label ]),
+      role: "img", "aria-label": name, "aria-hidden": (covered ? "true" : nil),
+      class: [ "flex w-full h-full items-center justify-center", css_class ].compact.join(" "),
+      style: "background-color: #{category_tint(category.color_hex)}",
+      data: (covered ? { product_image_target: "tile" } : nil)
   end
-
-  private
 
   # The category colour mixed into the page background at low strength, so
   # every tile is a soft, low-saturation wash of its category.

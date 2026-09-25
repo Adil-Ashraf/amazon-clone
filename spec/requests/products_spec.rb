@@ -145,6 +145,31 @@ RSpec.describe "Products", type: :request do
       get product_path(id: id)
     end
 
+    context "for a product with a verified photo" do
+      let(:photo_url) { "https://images.example.test/headphones.jpg" }
+
+      before do
+        headphones.update!(image_url: photo_url)
+        get_product(headphones.id)
+      end
+
+      it "shows the photo with the product name as alt text" do
+        expect(response_document.at_css("img[src='#{photo_url}']")["alt"]).to eq(headphones.name)
+      end
+    end
+
+    context "for a product without a photo" do
+      before { get_product(novel.id) }
+
+      it "shows the designed tile labelled with the product name" do
+        expect(response_document.css("[role='img'][aria-label='#{novel.name}']")).to be_present
+      end
+
+      it "shows no product photo" do
+        expect(response_document.css("img[src^='https://']")).to be_empty
+      end
+    end
+
     context "for an existing product" do
       before { get_product(headphones.id) }
 

@@ -101,7 +101,7 @@ stock palettes (`gray-*`, `amber-*`) in markup.
 | `.chip` / `.chip-active` | Category filters. Active chip is accent-filled.                 |
 | `.pill`           | Status indicator (order status, stock). Colors come from the caller.   |
 | toast             | Transient confirmation ("Added to your bag"), `role="status"`.         |
-| product tile      | `product_image_tag(product)`: category-tinted tile with the category icon and short name. Fills the caller's box. |
+| product image     | `product_image_tag(product)`: the product's verified photo (`object-cover`) over a category-tinted tile with the icon and short name; the tile shows when there's no photo or it fails to load. Fills the caller's box. |
 | stock badge       | `stock_badge(product)`: pill with a dot, copy per section 2.           |
 | qty stepper       | − / count / + with 44px buttons, bounded by available stock.           |
 | empty state       | One sentence of what's missing, one action to fix it. No illustration filler. |
@@ -144,5 +144,5 @@ already includes it, so `class="btn-primary"` is enough. `.price` applies tabula
 | Past prices | Shows current product price on old orders | "Prices shown are what you paid" from the `OrderItem` snapshot | Order history is a record, not a catalog |
 | Buy again | Separate "Buy again" storefront | "Buy again" button on past order items, adds to bag | Reorder where the person already is |
 | Demo sign-in | Account required, no shortcut | "Continue with demo account" on sign-in | Reviewers can try the full flow instantly |
-| Product imagery | Amazon shows seller photos | Aisle shows a consistent designed tile per product | This catalog has no real product photos; showing a photo of a different item would be a fake signal |
+| Product imagery | Amazon shows seller photos of varying quality | Aisle shows one verified photo per product, or an honest designed tile | A photo of the wrong item is a fake signal |
 | After sign-in | Lands on the home page | Returns to the page that asked for sign-in | Don't lose the person's place |

@@ -1,11 +1,13 @@
 # This file seeds a realistic catalog so the app doesn't look empty on first run.
 # Safe to run repeatedly: everything is looked up with find_or_create_by!.
 #
-# Products have no stored image of any kind, and the app shows no photos:
-# ProductsHelper#product_image_tag renders a designed tile per product (a tint
-# of the category colour with the category icon). The catalog has no real
-# product photos, and a stock photo of a different item would be a fake
-# signal (docs/DESIGN.md).
+# Product photos: db/seeds/product_images.yml maps product name -> one
+# Unsplash photo that was checked by eye to show that kind of product (not a
+# different item, no watermark or large text). They are assigned below to new
+# and existing products alike, so re-running db:seed updates a live catalog.
+# A product with no verified photo keeps image_url nil and is shown as a
+# designed tile instead (ProductsHelper#product_image_tag) -- a photo of the
+# wrong item would be a fake signal (docs/DESIGN.md).
 
 CATEGORIES_WITH_PRODUCTS = {
   "Electronics" => [
@@ -152,6 +154,17 @@ CATEGORIES_WITH_PRODUCTS.each do |category_name, products|
 end
 
 puts "Seeded #{Category.count} categories and #{Product.count} products."
+
+product_images = YAML.load_file(Rails.root.join("db/seeds/product_images.yml"))
+product_images.each do |name, url|
+  product = Product.find_by(name: name)
+  next unless product
+
+  product.image_url = url
+  product.save! if product.changed?
+end
+
+puts "Assigned #{Product.where.not(image_url: nil).count} verified product photos."
 
 demo_user = User.find_or_create_by!(email: "demo@example.com") do |user|
   user.name = "Demo User"
