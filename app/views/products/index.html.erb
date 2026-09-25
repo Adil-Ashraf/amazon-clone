@@ -27,8 +27,8 @@
 %>
 <% content_for :title, heading %>
 
-<%= turbo_frame_tag "products_results", data: { turbo_action: "advance" }, class: "page block py-6 lg:py-10" do %>
-  <nav aria-label="Breadcrumb" class="mb-4 text-sm text-muted">
+<%= turbo_frame_tag "products_results", data: { turbo_action: "advance" }, class: "page block pt-5 pb-10 lg:pt-6" do %>
+  <nav aria-label="Breadcrumb" class="mb-3 text-sm text-muted">
     <ol class="flex flex-wrap items-center gap-1.5">
       <li><%= link_to "Home", root_path, class: "quiet-link text-muted", data: { turbo_frame: "_top" } %></li>
       <li aria-hidden="true"><%= icon(:chevron_right, css_class: "size-3.5") %></li>
@@ -40,9 +40,9 @@
     </ol>
   </nav>
 
-  <div class="mb-6 lg:mb-8">
+  <div class="mb-6 flex flex-wrap items-baseline gap-x-3 gap-y-1">
     <h1 class="page-title"><%= heading %></h1>
-    <p id="results_summary" class="mt-2 text-[15px] text-muted tabular-nums">
+    <p id="results_summary" class="text-[15px] text-muted tabular-nums">
       <%= pluralize(number_with_delimiter(@pagy.count), "product") %>
     </p>
   </div>
@@ -140,7 +140,7 @@
     </div>
 
       <div class="min-w-0">
-        <div class="mb-5 flex flex-wrap items-center gap-3 border-b border-divider pb-5">
+        <div class="mb-5 flex flex-wrap items-center gap-3">
           <button type="button" class="btn-secondary border-line lg:hidden" data-action="drawer#open" aria-controls="filters" aria-haspopup="dialog">
             <%= icon(:sliders, css_class: "size-[18px]") %> Filters
             <% if active_filters.any? %><span class="flex size-5 items-center justify-center rounded-full bg-brand-strong text-[11px] text-white tabular-nums"><%= active_filters.size %></span><% end %>
