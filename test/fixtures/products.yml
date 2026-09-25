@@ -17,3 +17,17 @@ novel:
   price_cents: 1499
   stock: 3
   category: books
+
+sold_out:
+  name: Fixture Sold Out Speaker
+  description: A portable speaker with no stock left, used only in tests.
+  price_cents: 4999
+  stock: 0
+  category: electronics
+
+low_stock:
+  name: Fixture Low Stock Mouse
+  description: A wireless mouse with only a couple left, used only in tests.
+  price_cents: 2500
+  stock: 2
+  category: electronics

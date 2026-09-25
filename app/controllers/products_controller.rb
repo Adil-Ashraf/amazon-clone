@@ -3,8 +3,6 @@ class ProductsController < ApplicationController
 
   PER_PAGE = 24
 
-  rescue_from Pagy::OptionError, with: :redirect_to_first_page
-
   def index
     @categories = Category.order(:name)
     @selected_category = Category.find_by(slug: params[:category]) if params[:category].present?
@@ -13,6 +11,10 @@ class ProductsController < ApplicationController
     scope = Product.includes(:category)
     scope = scope.where(category: @selected_category) if @selected_category
     scope = @query.present? ? scope.search_full_text(@query) : scope.order(:name)
+
+    if params[:page].present? && !params[:page].to_s.match?(/\A[1-9]\d*\z/)
+      redirect_to products_path(category: params[:category].presence, query: params[:query].presence) and return
+    end
 
     @pagy, @products = pagy(scope, limit: PER_PAGE)
 
@@ -24,12 +26,6 @@ class ProductsController < ApplicationController
   end
 
   private
-
-  # A garbage (non-numeric) ?page= value raises before @pagy is ever built,
-  # so there's no last-page to redirect to -- fall back to page 1.
-  def redirect_to_first_page
-    redirect_to products_path(category: params[:category].presence, query: params[:query].presence)
-  end
 
   # A numeric but out-of-range ?page= (e.g. past the last page) doesn't raise
   # in this Pagy version -- it just returns an empty page -- so redirect to
