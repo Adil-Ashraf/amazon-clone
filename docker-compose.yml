@@ -1,0 +1,68 @@
+# Local development and tests. See bin/docker-dev for the common commands.
+# Production does not use this file (Railway builds ./Dockerfile).
+
+x-app: &app
+  build:
+    context: .
+    dockerfile: Dockerfile.dev
+  image: amazon-clone-dev
+  volumes:
+    - .:/app
+    - bundle:/usr/local/bundle
+  environment:
+    # No database name: Rails fills it in from config/database.yml
+    # (amazon_clone_development / amazon_clone_test), as CI relies on.
+    DATABASE_URL: postgres://postgres:postgres@db:5432
+    RAILS_ENV: development
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5433:5432" # 5433 on the host so it doesn't clash with a local Postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 20
+
+  web:
+    <<: *app
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      bash -c "(bundle check || bundle install)
+      && bin/rails db:prepare
+      && rm -f tmp/pids/server.pid
+      && bin/rails server -b 0.0.0.0 -p 3000"
+    stdin_open: true
+    tty: true
+
+  css:
+    <<: *app
+    depends_on:
+      - web
+    # Wait for web's bundle install to finish rather than racing it on the
+    # shared bundle volume. [always] keeps the watcher alive without a TTY.
+    command: >
+      bash -c "until bundle check > /dev/null; do sleep 2; done;
+      bin/rails tailwindcss:watch[always]"
+
+  chrome:
+    image: selenium/standalone-chromium
+    profiles: ["test"]
+    shm_size: 2gb
+    ports:
+      - "4444:4444"
+
+volumes:
+  pgdata:
+  bundle:

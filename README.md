@@ -82,6 +82,24 @@ Everything below was a conscious cut to keep the 24-hour build honest, not an ov
 
 ## Running Locally
 
+### With Docker (recommended)
+
+Needs only Docker — no local Ruby or Postgres.
+
+```bash
+git clone <repo-url>
+cd amazon-clone
+docker compose up         # builds the image, prepares the DB, starts Rails + Tailwind
+bin/docker-dev seed       # in a second terminal: 8 categories, 110 products, a demo user
+```
+
+Visit `http://localhost:3000` and log in with `demo@example.com` / `password123`.
+
+Other commands: `bin/docker-dev test | system | lint | security | console | bash | down`.
+Postgres is exposed on host port 5433 so it won't clash with a local install.
+
+### Without Docker
+
 ```bash
 git clone <repo-url>
 cd amazon-clone

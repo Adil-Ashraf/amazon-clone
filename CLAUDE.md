@@ -21,9 +21,12 @@ Stimulus via importmap), Tailwind v4 via `tailwindcss-rails` (`@theme` in
 
 ## Commands
 
+Always run Rails commands through Docker: bin/docker-dev test | system | lint |
+security | console | bash. The host Ruby is not used.
+
 ```sh
-bin/rails test            # unit, service and integration tests
-bin/rails test:system     # browser tests (headless Chrome)
-bin/rubocop               # lint
-bin/brakeman --no-pager   # security scan
+bin/docker-dev test       # bin/rails test (unit, service, integration)
+bin/docker-dev system     # bin/rails test:system against the chrome service
+bin/docker-dev lint       # bin/rubocop
+bin/docker-dev security   # bin/brakeman --no-pager
 ```

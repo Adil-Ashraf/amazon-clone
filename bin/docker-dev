@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Run this project through Docker so the host Ruby is never used.
+# Usage: bin/docker-dev <up|down|console|test|system|lint|security|seed|bash> [args...]
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+# One-off containers on the web service. Tests override RAILS_ENV but keep
+# the same DATABASE_URL, so Rails picks amazon_clone_test from database.yml.
+run() { docker compose run --rm "$@"; }
+run_test() { run -e RAILS_ENV=test "$@"; }
+
+# Resolvable hostname for the one-off test container, so the remote Chrome
+# can reach the Capybara server running inside it.
+SYSTEM_TEST_HOST=amazon-clone-system-test
+
+command="${1:-}"
+shift || true
+
+case "$command" in
+  up)       docker compose up "$@" ;;
+  down)     docker compose down "$@" ;;
+  console)  run web bin/rails console "$@" ;;
+  test)     run_test web bash -c 'bin/rails db:prepare && bin/rails test "$@"' _ "$@" ;;
+  system)
+    docker compose --profile test up -d --wait chrome
+    run_test --name "$SYSTEM_TEST_HOST" \
+      -e SELENIUM_REMOTE_URL=http://chrome:4444/wd/hub \
+      -e CAPYBARA_APP_HOSTNAME="$SYSTEM_TEST_HOST" \
+      web bash -c 'bin/rails db:prepare && bin/rails test:system "$@"' _ "$@"
+    ;;
+  lint)     run web bin/rubocop "$@" ;;
+  security) run web bin/brakeman --no-pager "$@" ;;
+  seed)     run web bin/rails db:seed "$@" ;;
+  bash)     run web bash "$@" ;;
+  *)
+    echo "Usage: bin/docker-dev <up|down|console|test|system|lint|security|seed|bash> [args...]" >&2
+    exit 1
+    ;;
+esac
