@@ -13,7 +13,7 @@ RSpec.describe "Guest browsing", type: :system do
 
   def search_for(query)
     fill_in "query", with: query
-    click_button "Search"
+    find_field("query").send_keys(:enter)
   end
 
   before { visit root_path }

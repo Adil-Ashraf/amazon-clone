@@ -26,61 +26,121 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="bg-gray-50 text-gray-900">
-    <header class="bg-slate-900 text-white">
-      <div class="container mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
-        <%= link_to root_path, class: "text-xl font-bold text-white whitespace-nowrap shrink-0" do %>
-          AmazonClone
+  <body class="min-h-screen flex flex-col bg-bg text-ink font-sans antialiased">
+    <a href="#main"
+       class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 btn-primary">
+      Skip to content
+    </a>
+
+    <header class="sticky top-0 z-40 border-b border-line bg-bg/90 backdrop-blur">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-2 sm:gap-6">
+        <%= link_to "Aisle", root_path,
+              class: "font-display text-2xl leading-none text-ink shrink-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2" %>
+
+        <%= form_with url: products_path, method: :get, role: "search",
+              class: "hidden sm:block flex-1 max-w-md mx-auto" do |f| %>
+          <%= f.label :query, "Search products", class: "sr-only" %>
+          <div class="relative">
+            <svg class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"/>
+              <line x1="16.5" y1="16.5" x2="21" y2="21"/>
+            </svg>
+            <%= f.search_field :query,
+                  value: params[:query],
+                  placeholder: "Search products",
+                  autocomplete: "off",
+                  class: "input w-full rounded-full pl-10 pr-14" %>
+            <kbd class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 rounded-md border border-line bg-subtle px-1.5 py-0.5 font-sans text-xs text-muted">⌘K</kbd>
+          </div>
         <% end %>
 
-        <%= form_with url: products_path, method: :get, class: "flex flex-1 min-w-[200px] order-3 sm:order-none",
-              data: live_search? ? {
-                controller: "live-search",
-                turbo_frame: "products_results",
-                live_search_frame_value: "products_results",
-                live_search_url_value: products_path
-              } : {} do |f| %>
-          <%= f.text_field :query,
-                value: params[:query],
-                placeholder: "Search products...",
-                "aria-label": "Search products",
-                autocomplete: "off",
-                data: live_search? ? { live_search_target: "input", action: "input->live-search#search" } : {},
-                class: "flex-1 rounded-l px-3 py-2 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-amber-400" %>
-          <%= f.submit "Search", class: "bg-amber-400 text-slate-900 px-4 rounded-r font-semibold hover:bg-amber-300 cursor-pointer" %>
-        <% end %>
-
-        <nav class="flex items-center gap-3 flex-wrap ml-auto" aria-label="Account">
-          <% if logged_in? %>
-            <span class="text-sm hidden sm:inline">Hello, <%= current_user.name %></span>
-            <%= link_to "Orders", orders_path, class: "text-sm hover:underline" %>
-            <%= button_to "Sign Out", session_path, method: :delete,
-                  data: { turbo_submits_with: "Signing Out..." },
-                  class: "text-sm font-medium border border-white/50 text-white hover:bg-white/10 rounded px-3 py-1.5 cursor-pointer" %>
-          <% else %>
-            <%= link_to "Sign In", new_session_path,
-                  class: "text-sm font-medium border border-white/50 text-white hover:bg-white/10 rounded px-3 py-1.5" %>
-            <%= link_to "Sign Up", new_registration_path,
-                  class: "text-sm font-semibold bg-amber-400 hover:bg-amber-300 text-slate-900 rounded px-3 py-1.5" %>
+        <nav class="ml-auto flex items-center gap-1 sm:gap-2" aria-label="Account">
+          <%= link_to products_path, class: "btn-ghost px-0 w-11 sm:hidden", "aria-label": "Search products" do %>
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="7"/>
+              <line x1="16.5" y1="16.5" x2="21" y2="21"/>
+            </svg>
           <% end %>
 
-          <%= link_to cart_path, class: "relative flex items-center hover:opacity-80", "aria-label": "Cart" do %>
-            <span class="text-2xl leading-none" aria-hidden="true">🛒</span>
+          <% if logged_in? %>
+            <%= link_to "Orders", orders_path, class: "btn-ghost hidden sm:inline-flex" %>
+          <% else %>
+            <%= link_to "Sign in", new_session_path, class: "btn-ghost hidden sm:inline-flex" %>
+            <%= link_to "Create account", new_registration_path, class: "btn-primary hidden sm:inline-flex" %>
+          <% end %>
+
+          <%# Signed in: the account menu at every width. Signed out: only on
+              mobile, where it holds the sign-in links hidden above. %>
+          <div data-controller="menu"
+               data-action="click@window->menu#closeOnOutsideClick keydown.esc@window->menu#closeOnEscape"
+               class="relative <%= "sm:hidden" unless logged_in? %>">
+            <button type="button" class="btn-ghost px-2 sm:px-3"
+                    aria-expanded="false" aria-controls="account_menu" aria-haspopup="true"
+                    data-menu-target="button" data-action="menu#toggle">
+              <svg class="w-5 h-5 sm:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="8" r="4"/>
+                <path d="M4 21a8 8 0 0 1 16 0"/>
+              </svg>
+              <% if logged_in? %>
+                <span class="hidden sm:inline"><%= current_user.name.split.first %></span>
+              <% end %>
+              <span class="sr-only">Account menu</span>
+              <svg class="hidden sm:block w-4 h-4 text-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
+            </button>
+
+            <div id="account_menu" hidden data-menu-target="panel"
+                 class="absolute right-0 mt-2 w-64 card p-2 shadow-lg">
+              <% if logged_in? %>
+                <p class="px-3 py-2 text-sm text-muted truncate">
+                  Signed in as <span class="text-ink font-medium"><%= current_user.email %></span>
+                </p>
+                <hr class="my-1 border-line">
+                <%= link_to "Orders", orders_path, class: "btn-ghost w-full justify-start" %>
+                <%= button_to "Sign out", session_path, method: :delete,
+                      form_class: "w-full",
+                      data: { turbo_submits_with: "Signing out…" },
+                      class: "btn-ghost w-full justify-start" %>
+              <% else %>
+                <%= link_to "Sign in", new_session_path, class: "btn-ghost w-full justify-start" %>
+                <%= link_to "Create account", new_registration_path, class: "btn-primary w-full mt-1" %>
+              <% end %>
+            </div>
+          </div>
+
+          <%= link_to cart_path, class: "btn-ghost px-2 sm:px-3" do %>
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 8h14l-1 12H6L5 8z"/>
+              <path d="M9 8V6a3 3 0 0 1 6 0v2"/>
+            </svg>
+            <span class="sr-only sm:not-sr-only">Bag</span>
             <%= render "shared/cart_count_badge" %>
           <% end %>
         </nav>
       </div>
     </header>
 
-    <main class="container mx-auto mt-6 px-4">
-      <% if notice.present? %>
-        <p class="mb-4 rounded bg-green-100 text-green-800 px-4 py-2"><%= notice %></p>
-      <% end %>
-      <% if alert.present? %>
-        <p class="mb-4 rounded bg-red-100 text-red-800 px-4 py-2"><%= alert %></p>
-      <% end %>
-
+    <main id="main" tabindex="-1" class="w-full max-w-6xl mx-auto px-4 sm:px-6 py-8 flex-1 focus:outline-none">
       <%= yield %>
     </main>
+
+    <footer class="border-t border-line">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row gap-2 sm:justify-between text-sm text-muted">
+        <p>Aisle — a demo store. No real payments are processed.</p>
+        <%= link_to "Source on GitHub", "https://github.com/Adil-Ashraf/amazon-clone",
+              class: "underline underline-offset-4 hover:text-ink rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+      </div>
+    </footer>
+
+    <div id="toasts" aria-live="polite"
+         class="pointer-events-none fixed inset-x-4 bottom-4 z-50 flex flex-col gap-2 sm:inset-x-auto sm:bottom-auto sm:right-6 sm:top-20 sm:w-96">
+      <% if notice.present? %>
+        <%= render "shared/toast", variant: :success, message: notice %>
+      <% end %>
+      <% if alert.present? %>
+        <%= render "shared/toast", variant: :error, message: alert %>
+      <% end %>
+    </div>
   </body>
 </html>
