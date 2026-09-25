@@ -1,5 +1,24 @@
 @import "tailwindcss";
 
+/* Aisle design tokens. docs/DESIGN.md is the source of truth for these. */
+@theme {
+  --color-bg: #FAF8F5;
+  --color-surface: #FFFFFF;
+  --color-subtle: #F3F0EB;
+  --color-ink: #1A1A1A;
+  --color-muted: #6B6B6B;
+  --color-line: #E8E4DE;
+  --color-accent: #1F5E4B;
+  --color-accent-soft: #E6EFEB;
+  --color-warn: #B7791F;
+  --color-warn-soft: #FBF3E4;
+  --color-danger: #B42318;
+  --color-danger-soft: #FDECEA;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Instrument Serif", Georgia, serif;
+}
+
 /* This app only has a light design. Without this, browsers that are in system
    dark mode auto-style native form controls (inputs, buttons) with a dark
    background, which combined with our explicit dark text classes made typed
@@ -14,4 +33,60 @@
 turbo-frame[busy] {
   opacity: 0.6;
   transition: opacity 150ms ease-in-out;
+}
+
+@layer components {
+  /* Shared base: every variant works on its own or alongside .btn. */
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium
+      transition-colors cursor-pointer
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply bg-ink text-surface hover:bg-ink/85 disabled:hover:bg-ink;
+  }
+
+  .btn-secondary {
+    @apply border border-line bg-surface text-ink hover:bg-subtle disabled:hover:bg-surface;
+  }
+
+  .btn-ghost {
+    @apply text-ink hover:bg-subtle disabled:hover:bg-transparent;
+  }
+
+  .input {
+    @apply min-h-11 rounded-lg border border-line bg-surface px-3 text-ink placeholder:text-muted
+      focus-visible:outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2;
+  }
+
+  .label {
+    @apply block mb-1 text-sm font-medium text-ink;
+  }
+
+  .card {
+    @apply rounded-xl border border-line bg-surface;
+  }
+
+  .chip {
+    @apply inline-flex min-h-11 items-center rounded-full border border-line bg-surface px-4 text-sm font-medium text-ink
+      transition-colors hover:bg-subtle
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2;
+  }
+
+  .chip-active {
+    @apply border-accent bg-accent text-surface hover:bg-accent;
+  }
+
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
+  }
+
+  .price {
+    @apply font-medium tabular-nums;
+  }
 }
