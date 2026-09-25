@@ -11,15 +11,24 @@ Rails.application.routes.draw do
 
   resource :session, only: %i[new create destroy]
   resource :registration, only: %i[new create]
+  resource :account, only: %i[show]
 
-  resources :products, only: %i[index show]
+  resources :products, only: %i[index show] do
+    resources :reviews, only: %i[create]
+  end
 
   resource :cart, only: %i[show]
-  resources :cart_items, only: %i[create update destroy]
+  resources :cart_items, only: %i[create update destroy] do
+    member { post :save_for_later }
+  end
+  resources :wishlist_items, only: %i[index create destroy], path: "wishlist"
 
   resource :checkout, only: %i[new create]
   resources :orders, only: %i[index show]
 
+  resources :newsletter_subscriptions, only: %i[create]
+  get "pages/:page", to: "pages#show", as: :page, constraints: { page: Regexp.union(PagesController::PAGES) }
+
   # Defines the root path route ("/")
-  root "products#index"
+  root "home#show"
 end

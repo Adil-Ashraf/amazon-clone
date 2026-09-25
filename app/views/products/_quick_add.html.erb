@@ -1,17 +1,23 @@
 <%# locals: (product:, in_bag_quantity:) %>
-<div id="<%= dom_id(product, :quick_add) %>" class="shrink-0">
+<%# Class, not id: the same product can be on a page more than once (home
+    page rails), and the create stream replaces every copy. %>
+<div class="<%= dom_id(product, :quick_add) %>">
   <% if product.out_of_stock? %>
-    <button type="button" disabled class="btn-secondary px-3">Sold out</button>
+    <button type="button" disabled class="btn-secondary w-full">Sold out</button>
   <% elsif in_bag_quantity.to_i.positive? %>
-    <%= link_to "In bag · #{in_bag_quantity}", cart_path, data: { turbo_frame: "_top" }, class: "btn-secondary px-3" %>
+    <%= link_to cart_path, data: { turbo_frame: "_top" }, class: "btn-secondary w-full border-line" do %>
+      <%= icon(:check, css_class: "size-4 text-success", stroke_width: 2.25) %> In cart &middot; <%= in_bag_quantity %>
+    <% end %>
   <% else %>
     <%# _top so a guest's sign-in redirect replaces the page, not the catalog frame;
         Turbo Stream responses still apply in place. %>
-    <%= button_to "Add", cart_items_path,
+    <%= button_to cart_items_path,
           params: { product_id: product.id, quantity: 1 },
           form: { data: { turbo_frame: "_top" } },
           data: { turbo_submits_with: "Adding…" },
-          "aria-label": "Add #{product.name} to bag",
-          class: "btn-primary px-3" %>
+          "aria-label": "Add #{product.name} to cart",
+          class: "btn-card w-full px-3 text-sm sm:text-[15px]" do %>
+      Add to Cart
+    <% end %>
   <% end %>
 </div>

@@ -1,12 +1,12 @@
 <%= render "sync" %>
 
-<%= turbo_stream.replace dom_id(@product, :quick_add) do %>
+<%= turbo_stream.replace_all ".#{dom_id(@product, :quick_add)}" do %>
   <%= render "products/quick_add", product: @product, in_bag_quantity: @in_bag_quantity %>
 <% end %>
 
 <%= turbo_stream.append "toasts" do %>
   <% if @status_variant == :success %>
-    <%= render "shared/toast", variant: :success, message: @status_message, action_label: "View bag", action_path: cart_path %>
+    <%= render "shared/toast", variant: :success, message: @status_message, action_label: "View cart", action_path: cart_path %>
   <% else %>
     <%= render "shared/toast", variant: :error, message: @status_message %>
   <% end %>
@@ -14,5 +14,7 @@
 
 <%# The product page's inline status; the global toast above covers the catalog. %>
 <%= turbo_stream.update "add_to_cart_status" do %>
-  <%= render "shared/toast", variant: @status_variant, message: @status_message %>
+  <% if @status_variant == :error %>
+    <p class="flex items-center gap-2 text-sm font-medium text-danger"><%= icon(:alert_circle, css_class: "size-4") %><%= @status_message %></p>
+  <% end %>
 <% end %>

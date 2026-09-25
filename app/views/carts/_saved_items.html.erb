@@ -1,0 +1,30 @@
+<%# locals: (saved_items:) %>
+<section id="saved_items" aria-labelledby="saved_heading" class="<%= 'mt-16' if saved_items.any? %>">
+  <% if saved_items.any? %>
+    <div class="mb-5 flex items-end justify-between gap-4">
+      <h2 id="saved_heading" class="h3">Saved for later <span class="text-muted tabular-nums">(<%= saved_items.size %>)</span></h2>
+      <%= link_to "View wishlist", wishlist_items_path, class: "link text-[15px]" %>
+    </div>
+    <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <% saved_items.first(6).each do |item| %>
+        <% product = item.product %>
+        <li class="flex min-w-0 gap-4 rounded-2xl border border-line bg-surface p-3">
+          <%= link_to product_path(product), class: "block size-20 shrink-0 overflow-hidden rounded-lg bg-subtle", tabindex: -1, "aria-hidden": "true" do %>
+            <%= product_image_tag product, sizes: :thumb %>
+          <% end %>
+          <div class="flex min-w-0 flex-1 flex-col">
+            <%= link_to product.name, product_path(product), class: "truncate rounded text-sm font-semibold text-ink hover:text-brand-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" %>
+            <div class="mt-0.5"><%= price_tag(product, size: :sm) %></div>
+            <div class="mt-auto flex items-center gap-2 pt-2">
+              <div class="min-w-0 flex-1"><%= render "products/quick_add", product: product, in_bag_quantity: nil %></div>
+              <%= button_to wishlist_item_path(item), method: :delete, class: "icon-btn text-muted hover:text-danger",
+                    "aria-label": "Remove #{product.name} from saved items" do %>
+                <%= icon(:trash, css_class: "size-[18px]") %>
+              <% end %>
+            </div>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  <% end %>
+</section>

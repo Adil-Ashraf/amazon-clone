@@ -1,0 +1,13 @@
+<%# locals: (products:, bag_quantities:, wishlist_ids:, layout: :rail) %>
+<%# :rail is a home-page row of four; :listing sits beside the catalog sidebar.
+    Rails are 3 columns on tablet; the items that would leave a ragged last
+    row are hidden there (md–lg only), so a rail always ends on a full row. %>
+<% tablet_overflow = layout == :rail && products.size > 3 ? products.size % 3 : 0 %>
+<div class="grid grid-cols-2 gap-3 max-[339px]:grid-cols-1 sm:gap-5 md:grid-cols-3 <%= layout == :listing ? 'xl:grid-cols-4 lg:gap-6' : 'lg:grid-cols-4 lg:gap-6' %>">
+  <% products.each_with_index do |product, index| %>
+    <div class="min-w-0 <%= 'md:max-lg:hidden' if index >= products.size - tablet_overflow %> [&>article]:h-full">
+      <%= render "products/product_card", product: product,
+            in_bag_quantity: bag_quantities[product.id], wishlist_item_id: wishlist_ids[product.id] %>
+    </div>
+  <% end %>
+</div>

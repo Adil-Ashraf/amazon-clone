@@ -1,0 +1,75 @@
+<% content_for :title, "My Account" %>
+
+<div class="page py-8 lg:py-12">
+  <div class="flex flex-wrap items-center gap-5">
+    <span class="flex size-16 items-center justify-center rounded-full bg-brand-soft text-xl font-semibold text-brand-strong" aria-hidden="true">
+      <%= current_user.name.split.map(&:first).first(2).join %>
+    </span>
+    <div>
+      <h1 class="page-title">Hello, <%= current_user.name.split.first %></h1>
+      <p class="mt-1 text-[15px] text-muted"><%= current_user.email %> &middot; Member since <%= current_user.created_at.strftime("%B %Y") %></p>
+    </div>
+  </div>
+
+  <ul class="mt-8 grid gap-4 sm:grid-cols-3">
+    <% [ [ "Orders", @orders_count, orders_path, :package ], [ "Wishlist", @wishlist_count, wishlist_items_path, :heart ],
+         [ "Reviews written", @reviews_count, nil, :star ] ].each do |label, count, path, icon_name| %>
+      <% stat = capture do %>
+        <span class="flex size-11 items-center justify-center rounded-full bg-bg text-ink"><%= icon(icon_name, css_class: "size-5") %></span>
+        <span><span class="block text-2xl font-semibold tabular-nums"><%= count %></span><span class="text-sm text-muted"><%= label %></span></span>
+      <% end %>
+      <li>
+        <% if path %>
+          <%= link_to stat, path, class: "flex items-center gap-4 rounded-2xl border border-line bg-surface p-5 transition-colors hover:border-ink/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" %>
+        <% else %>
+          <div class="flex items-center gap-4 rounded-2xl border border-line bg-surface p-5"><%= stat %></div>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+
+  <div class="mt-10 grid gap-8 lg:grid-cols-[1fr_380px] lg:items-start">
+    <section aria-labelledby="recent_orders_heading">
+      <div class="mb-4 flex items-end justify-between">
+        <h2 id="recent_orders_heading" class="h3">Recent orders</h2>
+        <%= link_to "All orders", orders_path, class: "link text-[15px]" %>
+      </div>
+      <% if @recent_orders.any? %>
+        <ul class="divide-y divide-divider rounded-2xl border border-line bg-surface">
+          <% @recent_orders.each do |order| %>
+            <li>
+              <%= link_to order_path(order), class: "flex items-center gap-4 px-5 py-4 transition-colors hover:bg-subtle/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand" do %>
+                <div class="flex-1">
+                  <p class="font-semibold tabular-nums">Order <%= order_number(order) %></p>
+                  <p class="text-sm text-muted"><%= order.created_at.strftime("%b %-d, %Y") %> &middot; <%= format_price_cents(order.total_cents) %></p>
+                </div>
+                <%= order_status_pill(order) %>
+                <%= icon(:chevron_right, css_class: "size-4 text-muted") %>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="rounded-2xl border border-dashed border-line p-6 text-[15px] text-muted">No orders yet. <%= link_to "Start shopping", products_path, class: "link" %></p>
+      <% end %>
+    </section>
+
+    <section id="addresses" class="scroll-mt-40" aria-labelledby="addresses_heading">
+      <h2 id="addresses_heading" class="h3 mb-4">Addresses</h2>
+      <div class="rounded-2xl border border-line bg-surface p-5">
+        <% if @last_order %>
+          <p class="flex items-center gap-2 text-sm font-semibold"><%= icon(:map_pin, css_class: "size-4 text-muted") %>Last shipped to</p>
+          <address class="mt-3 space-y-0.5 text-[15px] not-italic text-muted">
+            <p class="font-medium text-ink"><%= @last_order.shipping_name %></p>
+            <p><%= @last_order.shipping_address_line1 %></p>
+            <% if @last_order.shipping_address_line2.present? %><p><%= @last_order.shipping_address_line2 %></p><% end %>
+            <p><%= @last_order.shipping_city %>, <%= @last_order.shipping_state %> <%= @last_order.shipping_zip %></p>
+          </address>
+          <p class="mt-4 text-sm text-muted">Checkout fills this in for you. You can change it there.</p>
+        <% else %>
+          <p class="text-[15px] text-muted">Your address is saved when you place your first order.</p>
+        <% end %>
+      </div>
+    </section>
+  </div>
+</div>

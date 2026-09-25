@@ -1,24 +1,72 @@
 <% content_for :title, "Your Orders" %>
 
-<h1 class="text-2xl font-semibold text-gray-900 mb-6">Your Orders</h1>
+<div class="page py-8 lg:py-12">
+  <h1 class="page-title">Your Orders</h1>
 
-<% if @orders.any? %>
-  <div class="<%= card_classes("divide-y divide-gray-100") %>">
-    <% @orders.each do |order| %>
-      <%= link_to order_path(order), class: "flex items-center justify-between gap-4 px-4 py-4 hover:bg-gray-50" do %>
-        <div>
-          <p class="font-medium text-gray-900">Order #<%= order.id %></p>
-          <p class="text-sm text-gray-500">
-            <%= order.created_at.strftime("%B %-d, %Y") %> &middot; <%= order.status.capitalize %>
-          </p>
-        </div>
-        <p class="font-semibold text-gray-900 whitespace-nowrap"><%= format_price_cents(order.total_cents) %></p>
+  <nav class="-mx-4 mt-6 overflow-x-auto px-4 md:mx-0 md:px-0" aria-label="Filter orders by status">
+    <ul class="flex gap-2">
+      <% [ [ "All", nil ], [ "Processing", "processing" ], [ "Shipped", "shipped" ], [ "Delivered", "delivered" ], [ "Cancelled", "cancelled" ] ].each do |label, status| %>
+        <% active = @status_filter == status %>
+        <li class="shrink-0">
+          <%= link_to label, orders_path(status: status), "aria-current": (active ? "page" : nil),
+                class: "chip #{'chip-active' if active}" %>
+        </li>
       <% end %>
+    </ul>
+  </nav>
+
+  <div class="mt-8">
+    <% if @orders.any? %>
+      <ul class="space-y-4">
+        <% @orders.each do |order| %>
+          <% items = order.order_items %>
+          <li class="rounded-2xl border border-line bg-surface">
+            <div class="flex flex-wrap items-center gap-x-8 gap-y-3 border-b border-divider px-5 py-4 text-sm sm:px-6">
+              <div>
+                <p class="text-muted">Order</p>
+                <p class="font-semibold tabular-nums"><%= order_number(order) %></p>
+              </div>
+              <div>
+                <p class="text-muted">Placed</p>
+                <p class="font-medium"><%= order.created_at.strftime("%b %-d, %Y") %></p>
+              </div>
+              <div>
+                <p class="text-muted">Total</p>
+                <p class="font-semibold tabular-nums"><%= format_price_cents(order.total_cents) %></p>
+              </div>
+              <div class="ml-auto"><%= order_status_pill(order) %></div>
+            </div>
+
+            <div class="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:px-6">
+              <div class="flex -space-x-3" aria-hidden="true">
+                <% items.first(4).each do |item| %>
+                  <span class="relative block size-14 overflow-hidden rounded-xl bg-subtle ring-2 ring-surface"><%= product_image_tag item.product, alt: "", sizes: :thumb %></span>
+                <% end %>
+                <% if items.size > 4 %>
+                  <span class="relative flex size-14 items-center justify-center rounded-xl bg-subtle text-sm font-semibold text-muted-strong ring-2 ring-surface">+<%= items.size - 4 %></span>
+                <% end %>
+              </div>
+              <p class="min-w-0 flex-1 text-sm text-muted">
+                <span class="line-clamp-2"><%= items.map { |item| item.product.name }.to_sentence %></span>
+                <span class="text-ink"><%= pluralize(items.sum(&:quantity), "item") %></span>
+              </p>
+              <%= link_to order_path(order), class: "btn-secondary shrink-0 border-line" do %>
+                View Order <%= icon(:arrow_right, css_class: "size-4") %>
+              <% end %>
+            </div>
+          </li>
+        <% end %>
+      </ul>
+    <% elsif @status_filter %>
+      <%= render "shared/empty_state", icon: :package,
+            title: "No #{@status_filter} orders",
+            body: "Orders with this status will show up here.",
+            action_label: "See all orders", action_path: orders_path %>
+    <% else %>
+      <%= render "shared/empty_state", icon: :package,
+            title: "No orders yet",
+            body: "When you place an order, you can track it here from confirmation to delivery.",
+            action_label: "Start shopping", action_path: products_path %>
     <% end %>
   </div>
-<% else %>
-  <div class="<%= card_classes("p-10 text-center text-gray-600") %>">
-    <p class="mb-3">You haven&rsquo;t placed any orders yet.</p>
-    <%= link_to "Browse products", products_path, class: "text-blue-600 hover:underline" %>
-  </div>
-<% end %>
+</div>

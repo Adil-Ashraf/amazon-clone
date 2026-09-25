@@ -1,0 +1,40 @@
+<%
+  columns = {
+    "Shop" => [ [ "All products", products_path ], [ "New arrivals", products_path(sort: "newest") ],
+                [ "Deals", products_path(deals: 1) ], [ "Categories", root_path(anchor: "categories") ] ],
+    "Help" => [ [ "Track order", orders_path ], [ "Returns", page_path("returns") ],
+                [ "Shipping", page_path("shipping") ], [ "FAQs", page_path("help") ] ],
+    "Company" => [ [ "About", page_path("about") ], [ "Careers", page_path("about", anchor: "careers") ],
+                   [ "Contact", page_path("contact") ] ],
+    "Legal" => [ [ "Privacy", page_path("privacy") ], [ "Terms", page_path("terms") ],
+                 [ "Cookies", page_path("privacy", anchor: "cookies") ] ]
+  }
+%>
+<footer class="mt-16 border-t border-line bg-surface lg:mt-20">
+  <div class="page grid gap-10 py-12 md:grid-cols-[1.4fr_repeat(4,1fr)] lg:py-16">
+    <div class="max-w-xs">
+      <%= render "shared/logo" %>
+      <p class="mt-4 text-[15px] text-muted">Better products. Better everyday.</p>
+    </div>
+
+    <div class="grid grid-cols-2 gap-8 sm:grid-cols-4 md:col-span-4">
+      <% columns.each do |heading, links| %>
+        <nav aria-label="<%= heading %>">
+          <p class="text-sm font-semibold text-ink"><%= heading %></p>
+          <ul class="mt-4 space-y-3">
+            <% links.each do |label, path| %>
+              <li><%= link_to label, path, class: "quiet-link text-sm text-muted" %></li>
+            <% end %>
+          </ul>
+        </nav>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="border-t border-divider">
+    <div class="page flex flex-col gap-2 py-6 text-[13px] text-muted sm:flex-row sm:items-center sm:justify-between">
+      <p>&copy; <%= Date.current.year %> Aisle Market. A demo store &mdash; no real payments are processed.</p>
+      <%= link_to "Source on GitHub", "https://github.com/Adil-Ashraf/amazon-clone", class: "quiet-link text-muted" %>
+    </div>
+  </div>
+</footer>

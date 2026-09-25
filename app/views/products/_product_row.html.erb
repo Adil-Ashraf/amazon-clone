@@ -1,0 +1,33 @@
+<%# locals: (product:, in_bag_quantity:, wishlist_item_id:) %>
+<%# The list-view version of the product card: same content, laid out in a row. %>
+<article class="group flex gap-4 rounded-xl border border-line bg-surface p-3 transition-[border-color,box-shadow] duration-200 hover:border-ink/15 hover:shadow-lift sm:gap-6 sm:p-4">
+  <div class="relative size-28 shrink-0 overflow-hidden rounded-lg bg-subtle sm:size-44">
+    <%= link_to product_path(product), data: { turbo_frame: "_top" }, tabindex: -1, "aria-hidden": "true", class: "block size-full" do %>
+      <%= product_image_tag product, sizes: :thumb %>
+    <% end %>
+    <% if product.on_sale? %>
+      <div class="absolute left-2 top-2"><%= discount_badge(product) %></div>
+    <% end %>
+  </div>
+
+  <div class="flex min-w-0 flex-1 flex-col gap-4 sm:flex-row sm:items-start">
+    <div class="min-w-0 flex-1">
+      <p class="text-xs font-medium uppercase tracking-wider text-muted"><%= product.category.name %></p>
+      <h3 class="mt-1 text-base leading-snug font-semibold">
+        <%= link_to product.name, product_path(product), data: { turbo_frame: "_top" },
+              class: "rounded text-ink hover:text-brand-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" %>
+      </h3>
+      <div class="mt-1.5"><%= rating_summary(product) %></div>
+      <p class="mt-2 hidden text-sm text-muted line-clamp-2 sm:block"><%= product.description %></p>
+      <div class="mt-3"><%= stock_badge(product) %></div>
+    </div>
+
+    <div class="flex shrink-0 items-center gap-3 sm:w-48 sm:flex-col sm:items-stretch">
+      <div class="flex-1 sm:flex-none"><%= price_tag(product) %></div>
+      <div class="flex items-center gap-2">
+        <div class="flex-1"><%= render "products/quick_add", product: product, in_bag_quantity: in_bag_quantity %></div>
+        <%= render "products/wishlist_toggle", product: product, wishlist_item_id: wishlist_item_id, bordered: true %>
+      </div>
+    </div>
+  </div>
+</article>

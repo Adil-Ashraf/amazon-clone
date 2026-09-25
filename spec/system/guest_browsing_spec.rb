@@ -16,9 +16,9 @@ RSpec.describe "Guest browsing", type: :system do
     find_field("query").send_keys(:enter)
   end
 
-  before { visit root_path }
+  before { visit products_path }
 
-  context "on the storefront" do
+  context "on the catalog" do
     it "shows every product" do
       expect(page).to have_link(href: product_path(headphones)).and have_link(href: product_path(novel))
     end

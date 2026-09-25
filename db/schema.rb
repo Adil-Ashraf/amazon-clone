@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_25_134929) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_25_150400) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -41,6 +41,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_25_134929) do
     t.index ["slug"], name: "index_categories_on_slug", unique: true
   end
 
+  create_table "newsletter_subscriptions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_newsletter_subscriptions_on_email", unique: true
+  end
+
   create_table "order_items", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "order_id", null: false
@@ -56,6 +63,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_25_134929) do
     t.datetime "created_at", null: false
     t.string "shipping_address_line1", null: false
     t.string "shipping_address_line2"
+    t.integer "shipping_cents", default: 0, null: false
     t.string "shipping_city", null: false
     t.string "shipping_name", null: false
     t.string "shipping_state", null: false
@@ -69,14 +77,31 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_25_134929) do
 
   create_table "products", force: :cascade do |t|
     t.bigint "category_id", null: false
+    t.integer "compare_at_price_cents"
     t.datetime "created_at", null: false
     t.text "description", null: false
     t.string "image_url"
     t.string "name", null: false
     t.integer "price_cents", null: false
+    t.decimal "rating_average", precision: 2, scale: 1, default: "0.0", null: false
+    t.integer "reviews_count", default: 0, null: false
     t.integer "stock", default: 0, null: false
     t.datetime "updated_at", null: false
     t.index ["category_id"], name: "index_products_on_category_id"
+    t.check_constraint "compare_at_price_cents IS NULL OR compare_at_price_cents > price_cents", name: "products_compare_at_above_price"
+  end
+
+  create_table "reviews", force: :cascade do |t|
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.bigint "product_id", null: false
+    t.integer "rating", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["product_id", "user_id"], name: "index_reviews_on_product_id_and_user_id", unique: true
+    t.index ["product_id"], name: "index_reviews_on_product_id"
+    t.index ["user_id"], name: "index_reviews_on_user_id"
+    t.check_constraint "rating >= 1 AND rating <= 5", name: "reviews_rating_range"
   end
 
   create_table "users", force: :cascade do |t|
@@ -88,6 +113,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_25_134929) do
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 
+  create_table "wishlist_items", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "product_id", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["product_id"], name: "index_wishlist_items_on_product_id"
+    t.index ["user_id", "product_id"], name: "index_wishlist_items_on_user_id_and_product_id", unique: true
+    t.index ["user_id"], name: "index_wishlist_items_on_user_id"
+  end
+
   add_foreign_key "cart_items", "carts"
   add_foreign_key "cart_items", "products"
   add_foreign_key "carts", "users"
@@ -95,4 +130,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_25_134929) do
   add_foreign_key "order_items", "products"
   add_foreign_key "orders", "users"
   add_foreign_key "products", "categories"
+  add_foreign_key "reviews", "products"
+  add_foreign_key "reviews", "users"
+  add_foreign_key "wishlist_items", "products"
+  add_foreign_key "wishlist_items", "users"
 end

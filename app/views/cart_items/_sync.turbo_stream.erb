@@ -3,7 +3,7 @@
 <% end %>
 
 <%= turbo_stream.replace "cart_items" do %>
-  <div id="cart_items">
+  <div id="cart_items" class="mt-6 lg:mt-8">
     <%= render "carts/cart", cart: @cart, cart_items: @cart_items %>
   </div>
 <% end %>

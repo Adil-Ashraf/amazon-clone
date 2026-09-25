@@ -49,4 +49,26 @@ RSpec.describe "Orders", type: :request do
       it { expect(response).to have_http_status(:not_found) }
     end
   end
+
+  describe "GET /orders?status=" do
+    let!(:delivered) { create(:order, user: user, status: :delivered) }
+
+    before { sign_in_as(user) }
+
+    context "filtered to delivered" do
+      before { get orders_path(status: "delivered") }
+
+      it "lists only delivered orders" do
+        expect(response_link_hrefs).to include(order_path(delivered)).and exclude(order_path(own_order))
+      end
+    end
+
+    context "with an unknown status" do
+      before { get orders_path(status: "bogus") }
+
+      it "lists every order" do
+        expect(response_link_hrefs).to include(order_path(delivered), order_path(own_order))
+      end
+    end
+  end
 end

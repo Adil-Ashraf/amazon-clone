@@ -1,35 +1,17 @@
 <%# locals: (variant:, message:, timeout: variant == :success ? 4000 : 0, action_label: nil, action_path: nil) %>
-<%
-  variant_classes = {
-    success: "bg-accent-soft border-accent/20 text-accent",
-    error: "bg-danger-soft border-danger/20 text-danger"
-  }
-%>
 <div data-controller="dismissible" data-dismissible-timeout-value="<%= timeout %>"
      role="<%= variant == :error ? "alert" : "status" %>"
-     class="pointer-events-auto flex w-full items-start gap-2 rounded-xl border px-4 py-3 text-sm font-medium <%= variant_classes.fetch(variant) %>">
+     class="toast pointer-events-auto flex w-full items-center gap-3 rounded-xl border border-line bg-surface py-2 pl-4 pr-2 text-sm font-medium text-ink shadow-float">
   <% if variant == :success %>
-    <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9"/>
-      <path d="M8 12l3 3 5-6"/>
-    </svg>
+    <%= icon(:check_circle, css_class: "size-5 shrink-0 text-success") %>
   <% else %>
-    <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9"/>
-      <line x1="12" y1="8" x2="12" y2="13"/>
-      <line x1="12" y1="16" x2="12" y2="16.01"/>
-    </svg>
+    <%= icon(:alert_circle, css_class: "size-5 shrink-0 text-danger") %>
   <% end %>
-  <p class="flex-1"><%= message %></p>
+  <p class="flex-1 py-1.5"><%= message %></p>
   <% if action_label && action_path %>
-    <%= link_to action_label, action_path, data: { turbo_frame: "_top" },
-          class: "shrink-0 underline underline-offset-4 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+    <%= link_to action_label, action_path, data: { turbo_frame: "_top" }, class: "link shrink-0 px-1" %>
   <% end %>
-  <button type="button" data-action="dismissible#close" aria-label="Dismiss"
-          class="-m-3 flex size-11 shrink-0 items-center justify-center rounded-lg opacity-60 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent">
-    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <line x1="6" y1="6" x2="18" y2="18"/>
-      <line x1="6" y1="18" x2="18" y2="6"/>
-    </svg>
+  <button type="button" data-action="dismissible#close" aria-label="Dismiss" class="icon-btn -my-1 text-muted">
+    <%= icon(:close, css_class: "size-4") %>
   </button>
 </div>

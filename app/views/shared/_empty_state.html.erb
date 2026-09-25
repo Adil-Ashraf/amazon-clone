@@ -1,25 +1,13 @@
 <%# locals: (icon:, title:, body:, action_label: nil, action_path: nil) %>
-<div class="card px-6 py-12 text-center flex flex-col items-center">
-  <span class="mb-4 flex size-12 items-center justify-center rounded-full bg-subtle text-muted">
-    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-      <% case icon %>
-      <% when :search %>
-        <circle cx="11" cy="11" r="7"/>
-        <line x1="16.5" y1="16.5" x2="21" y2="21"/>
-      <% when :bag %>
-        <path d="M5 8h14l-1 12H6L5 8z"/>
-        <path d="M9 8V6a3 3 0 0 1 6 0v2"/>
-      <% else %>
-        <rect x="3" y="3" width="8" height="8" rx="1"/>
-        <rect x="13" y="3" width="8" height="8" rx="1"/>
-        <rect x="3" y="13" width="8" height="8" rx="1"/>
-        <rect x="13" y="13" width="8" height="8" rx="1"/>
-      <% end %>
-    </svg>
+<div class="card flex flex-col items-center px-6 py-14 text-center sm:py-20">
+  <span class="mb-5 flex size-16 items-center justify-center rounded-full bg-brand-soft text-brand-strong">
+    <%= icon(icon, css_class: "size-7", stroke_width: 1.5) %>
   </span>
-  <h2 class="text-lg font-semibold text-ink"><%= title %></h2>
-  <p class="mt-1 max-w-sm text-sm text-muted"><%= body %></p>
+  <h2 class="h3"><%= title %></h2>
+  <p class="mt-2 max-w-sm text-[15px] text-muted"><%= body %></p>
   <% if action_label && action_path %>
-    <%= link_to action_label, action_path, data: { turbo_frame: "_top" }, class: "btn-secondary mt-6" %>
+    <%= link_to action_path, data: { turbo_frame: "_top" }, class: "btn-primary btn-lg mt-8" do %>
+      <%= action_label %> <%= icon(:arrow_right, css_class: "size-4") %>
+    <% end %>
   <% end %>
 </div>

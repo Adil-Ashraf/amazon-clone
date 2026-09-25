@@ -68,6 +68,26 @@ RSpec.describe "Checkouts", type: :request do
         it "empties the cart" do
           expect(user.cart.cart_items.reload).to be_empty
         end
+
+        context "when the order page first loads" do
+          before { follow_redirect! }
+
+          it "shows the confirmation with links to the order details and back to the shop" do
+            expect(response_document.css("section[aria-labelledby='order_heading'] a").map { |a| a["href"] })
+              .to include("#order_details", products_path)
+          end
+        end
+
+        context "when the order page is loaded again" do
+          before do
+            follow_redirect!
+            get order_path(order)
+          end
+
+          it "no longer shows the confirmation" do
+            expect(response_document.css("section[aria-labelledby='order_heading']")).to be_empty
+          end
+        end
       end
     end
 

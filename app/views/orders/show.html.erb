@@ -1,48 +1,111 @@
-<% content_for :title, "Order ##{@order.id}" %>
+<% content_for :title, "Order #{order_number(@order)}" %>
 
-<%= link_to "← Back to orders", orders_path, class: "text-sm text-blue-600 hover:underline mb-4 inline-block" %>
+<div class="page py-8 lg:py-12">
+  <% if @just_placed %>
+    <%# First view right after checkout (a one-time flash from CheckoutsController). %>
+    <section class="rounded-hero border border-success/20 bg-success-soft px-5 py-8 text-center sm:px-10 sm:py-12" aria-labelledby="order_heading">
+      <span class="mx-auto flex size-14 items-center justify-center rounded-full bg-success text-white">
+        <%= icon(:check, css_class: "size-7", stroke_width: 2.25) %>
+      </span>
+      <h1 id="order_heading" class="page-title mt-5">Thank you! Your order has been placed.</h1>
+      <p class="mt-3 text-[17px] font-semibold tabular-nums text-ink">Order <%= order_number(@order) %></p>
+      <p class="mx-auto mt-2 max-w-md text-[15px] text-muted-strong">
+        <%= @order.paid? ? "Your order is being processed." : "Your order status is #{OrdersHelper::STATUS_LABELS.fetch(@order.status).downcase}." %>
+        You can follow every step on this page or under Your Orders.
+      </p>
+      <div class="mt-8 flex flex-col justify-center gap-3 min-[400px]:flex-row">
+        <a href="#order_details" class="btn-primary btn-lg">View Order</a>
+        <%= link_to "Continue Shopping", products_path, class: "btn-secondary btn-lg bg-transparent" %>
+      </div>
+    </section>
+  <% else %>
+    <%= link_to orders_path, class: "link inline-flex min-h-11 items-center gap-1.5 text-sm" do %>
+      <%= icon(:arrow_left, css_class: "size-4") %> All orders
+    <% end %>
 
-<h1 class="text-2xl font-semibold text-gray-900 mb-1">Order #<%= @order.id %></h1>
-<p class="text-sm text-gray-500 mb-6">
-  Placed <%= @order.created_at.strftime("%B %-d, %Y at %-I:%M %p") %> &middot;
-  <span class="font-medium"><%= @order.status.capitalize %></span>
-</p>
+    <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+      <h1 id="order_heading" class="page-title">Order <%= order_number(@order) %></h1>
+      <%= order_status_pill(@order) %>
+    </div>
+    <p class="mt-2 text-[15px] text-muted">Placed <%= @order.created_at.strftime("%B %-d, %Y at %-I:%M %p") %></p>
+  <% end %>
 
-<div class="grid md:grid-cols-3 gap-8">
-  <div class="md:col-span-2">
-    <h2 class="text-lg font-semibold text-gray-900 mb-3">Items</h2>
-    <div class="<%= card_classes("divide-y divide-gray-100 px-4") %>">
-      <% @order.order_items.includes(:product).each do |item| %>
-        <div class="flex items-center gap-4 py-4">
-          <%= link_to product_path(item.product), class: "shrink-0" do %>
-            <div class="w-16 h-16 bg-gray-200 rounded overflow-hidden">
-              <%= product_image_tag item.product, alt: item.product.name %>
+  <%# Timeline: only the steps this order has actually reached are marked. %>
+  <section id="order_details" class="mt-8 rounded-2xl border border-line bg-surface p-5 sm:p-8" aria-label="Order progress">
+    <% if @order.cancelled? %>
+      <p class="flex items-center gap-3 font-semibold text-danger"><%= icon(:alert_circle, css_class: "size-5") %>This order was cancelled.</p>
+      <p class="mt-1 pl-8 text-sm text-muted">It won&rsquo;t be shipped, and nothing was charged.</p>
+    <% else %>
+      <ol class="grid gap-0 md:grid-cols-5">
+        <% steps = order_timeline_steps(@order) %>
+        <% steps.each_with_index do |(label, reached, current), index| %>
+          <li class="relative flex gap-4 pb-8 last:pb-0 md:flex-col md:items-center md:gap-3 md:pb-0 md:text-center" <%= 'aria-current="step"'.html_safe if current %>>
+            <% unless index == steps.size - 1 %>
+              <span class="absolute left-4 top-8 h-[calc(100%-2rem)] w-0.5 md:left-[calc(50%+1.25rem)] md:top-4 md:h-0.5 md:w-[calc(100%-2.5rem)] <%= steps[index + 1][1] ? 'bg-brand' : 'bg-divider' %>" aria-hidden="true"></span>
+            <% end %>
+            <span class="relative z-10 flex size-8 shrink-0 items-center justify-center rounded-full <%= reached ? 'bg-brand text-ink' : 'bg-surface text-muted ring-2 ring-divider' %> <%= 'ring-4 ring-brand-soft' if current %>">
+              <% if reached %><%= icon(:check, css_class: "size-4", stroke_width: 2.5) %><% else %><span class="size-2 rounded-full bg-line"></span><% end %>
+            </span>
+            <div class="pt-1 md:pt-0">
+              <p class="text-[15px] font-semibold <%= reached ? 'text-ink' : 'text-muted' %>"><%= label %></p>
+              <p class="text-sm text-muted"><%= current ? "Current status" : (reached ? "Done" : "Up next") %></p>
             </div>
-          <% end %>
-          <div class="flex-1 min-w-0">
-            <%= link_to item.product.name, product_path(item.product), class: "font-medium text-gray-900 hover:underline" %>
-            <p class="text-sm text-gray-500">Qty <%= item.quantity %> &times; <%= format_price_cents(item.price_cents) %></p>
-          </div>
-          <p class="font-semibold text-gray-900 whitespace-nowrap"><%= format_price_cents(item.price_cents * item.quantity) %></p>
-        </div>
-      <% end %>
-    </div>
+          </li>
+        <% end %>
+      </ol>
+    <% end %>
+  </section>
 
-    <div class="<%= card_classes("mt-4 p-4 flex items-center justify-between") %>">
-      <span class="font-semibold text-gray-900">Total</span>
-      <span class="text-xl font-bold text-gray-900"><%= format_price_cents(@order.total_cents) %></span>
-    </div>
-  </div>
+  <div class="mt-8 grid gap-8 lg:grid-cols-[1fr_380px] lg:items-start">
+    <section class="min-w-0 rounded-2xl border border-line bg-surface p-5 sm:p-6" aria-labelledby="items_heading">
+      <h2 id="items_heading" class="text-lg font-semibold">Products</h2>
+      <ul class="mt-2 divide-y divide-divider">
+        <% @order_items.each do |item| %>
+          <li class="flex items-center gap-4 py-4">
+            <%= link_to product_path(item.product), class: "block size-20 shrink-0 overflow-hidden rounded-xl bg-subtle", tabindex: -1, "aria-hidden": "true" do %>
+              <%= product_image_tag item.product, sizes: :thumb %>
+            <% end %>
+            <div class="min-w-0 flex-1">
+              <%= link_to item.product.name, product_path(item.product), class: "line-clamp-2 rounded text-[15px] font-semibold text-ink hover:text-brand-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" %>
+              <p class="mt-1 text-sm text-muted">Qty <%= item.quantity %> &times; <%= format_price_cents(item.price_cents) %></p>
+            </div>
+            <div class="flex shrink-0 flex-col items-end gap-2">
+              <p class="price text-[15px]"><%= format_price_cents(item.price_cents * item.quantity) %></p>
+              <% unless item.product.out_of_stock? %>
+                <%= button_to "Buy again", cart_items_path, params: { product_id: item.product.id, quantity: 1 },
+                      data: { turbo_submits_with: "Adding…" }, class: "btn-tertiary min-h-11 px-3 text-sm text-brand-strong" %>
+              <% end %>
+            </div>
+          </li>
+        <% end %>
+      </ul>
+      <p class="mt-2 text-xs text-muted">Prices shown are what you paid.</p>
+    </section>
 
-  <div>
-    <h2 class="text-lg font-semibold text-gray-900 mb-3">Shipping Address</h2>
-    <div class="<%= card_classes("p-4 text-sm text-gray-700 space-y-1") %>">
-      <p><%= @order.shipping_name %></p>
-      <p><%= @order.shipping_address_line1 %></p>
-      <% if @order.shipping_address_line2.present? %>
-        <p><%= @order.shipping_address_line2 %></p>
-      <% end %>
-      <p><%= @order.shipping_city %>, <%= @order.shipping_state %> <%= @order.shipping_zip %></p>
+    <div class="min-w-0 space-y-6">
+      <section class="rounded-2xl border border-line bg-surface p-5 sm:p-6" aria-labelledby="address_heading">
+        <h2 id="address_heading" class="flex items-center gap-2 text-[15px] font-semibold"><%= icon(:map_pin, css_class: "size-[18px] text-muted") %>Shipping address</h2>
+        <address class="mt-3 space-y-0.5 text-[15px] not-italic text-muted">
+          <p class="font-medium text-ink"><%= @order.shipping_name %></p>
+          <p><%= @order.shipping_address_line1 %></p>
+          <% if @order.shipping_address_line2.present? %><p><%= @order.shipping_address_line2 %></p><% end %>
+          <p><%= @order.shipping_city %>, <%= @order.shipping_state %> <%= @order.shipping_zip %></p>
+        </address>
+      </section>
+
+      <section class="rounded-2xl border border-line bg-surface p-5 sm:p-6" aria-labelledby="payment_heading">
+        <h2 id="payment_heading" class="flex items-center gap-2 text-[15px] font-semibold"><%= icon(:credit_card, css_class: "size-[18px] text-muted") %>Payment</h2>
+        <p class="mt-3 text-[15px] text-muted">Demo payment &mdash; nothing was charged.</p>
+      </section>
+
+      <section class="rounded-2xl border border-line bg-surface p-5 sm:p-6" aria-labelledby="order_summary_heading">
+        <h2 id="order_summary_heading" class="text-[15px] font-semibold">Order summary</h2>
+        <dl class="mt-4 space-y-3 text-[15px]">
+          <div class="flex justify-between gap-4"><dt class="text-muted">Subtotal</dt><dd class="tabular-nums"><%= format_price_cents(@order.subtotal_cents) %></dd></div>
+          <div class="flex justify-between gap-4"><dt class="text-muted">Shipping</dt><dd class="tabular-nums"><%= @order.shipping_cents.zero? ? "Free" : format_price_cents(@order.shipping_cents) %></dd></div>
+          <div class="flex justify-between gap-4 border-t border-divider pt-3"><dt class="font-semibold">Total</dt><dd class="price text-xl"><%= format_price_cents(@order.total_cents) %></dd></div>
+        </dl>
+      </section>
     </div>
   </div>
 </div>

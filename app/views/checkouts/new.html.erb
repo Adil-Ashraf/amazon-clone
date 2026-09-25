@@ -1,68 +1,117 @@
 <% content_for :title, "Checkout" %>
+<%
+  subtotal = @cart_items.sum { |item| item.product.price_cents * item.quantity }
+  shipping = Order.shipping_cents_for(subtotal)
+  field = ->(f, attr, label, **opts) {
+    safe_join([
+      f.label(attr, label, class: "label"),
+      f.text_field(attr, class: "input", "aria-invalid": (@order.errors[attr].any? ? "true" : nil), **opts)
+    ])
+  }
+%>
 
-<h1 class="text-2xl font-semibold text-gray-900 mb-6">Checkout</h1>
-
-<div class="grid md:grid-cols-3 gap-8">
-  <div class="md:col-span-2">
-    <h2 class="text-lg font-semibold text-gray-900 mb-3">Shipping Address</h2>
-
-    <%= render "shared/error_messages", object: @order %>
-
-    <%= form_with model: @order, url: checkout_path, method: :post, class: card_classes("p-6 space-y-4") do |f| %>
-      <div>
-        <%= f.label :shipping_name, "Full Name", class: "block text-sm font-medium mb-1" %>
-        <%= f.text_field :shipping_name, required: true, class: "w-full px-3 py-2 #{input_classes}" %>
-      </div>
-
-      <div>
-        <%= f.label :shipping_address_line1, "Address Line 1", class: "block text-sm font-medium mb-1" %>
-        <%= f.text_field :shipping_address_line1, required: true, class: "w-full px-3 py-2 #{input_classes}" %>
-      </div>
-
-      <div>
-        <%= f.label :shipping_address_line2, "Address Line 2 (optional)", class: "block text-sm font-medium mb-1" %>
-        <%= f.text_field :shipping_address_line2, class: "w-full px-3 py-2 #{input_classes}" %>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="sm:col-span-1">
-          <%= f.label :shipping_city, "City", class: "block text-sm font-medium mb-1" %>
-          <%= f.text_field :shipping_city, required: true, class: "w-full px-3 py-2 #{input_classes}" %>
-        </div>
-        <div>
-          <%= f.label :shipping_state, "State", class: "block text-sm font-medium mb-1" %>
-          <%= f.text_field :shipping_state, required: true, class: "w-full px-3 py-2 #{input_classes}" %>
-        </div>
-        <div>
-          <%= f.label :shipping_zip, "ZIP", class: "block text-sm font-medium mb-1" %>
-          <%= f.text_field :shipping_zip, required: true, class: "w-full px-3 py-2 #{input_classes}" %>
-        </div>
-      </div>
-
-      <div class="border-t pt-4">
-        <h2 class="text-lg font-semibold text-gray-900 mb-2">Payment</h2>
-        <p class="text-sm text-gray-500 mb-4">
-          This is a demo checkout &mdash; no real payment is processed. Clicking "Place Order" completes your order immediately.
-        </p>
-        <%= f.submit "Place Order", data: { turbo_submits_with: "Placing Order..." },
-              class: "w-full bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold py-3 rounded cursor-pointer" %>
-      </div>
+<div class="page py-8 lg:py-12">
+  <div class="flex flex-wrap items-center justify-between gap-4">
+    <h1 class="page-title">Checkout</h1>
+    <%= link_to cart_path, class: "link inline-flex min-h-11 items-center gap-1.5 text-sm" do %>
+      <%= icon(:arrow_left, css_class: "size-4") %> Back to cart
     <% end %>
   </div>
 
-  <div>
-    <h2 class="text-lg font-semibold text-gray-900 mb-3">Order Summary</h2>
-    <div class="<%= card_classes("divide-y divide-gray-100 px-4") %>">
-      <% @cart_items.each do |cart_item| %>
-        <div class="flex justify-between gap-2 py-3 text-sm">
-          <span class="text-gray-700"><%= cart_item.product.name %> &times; <%= cart_item.quantity %></span>
-          <span class="font-medium text-gray-900 whitespace-nowrap"><%= format_price_cents(cart_item.product.price_cents * cart_item.quantity) %></span>
+  <%# One page, three clear steps: everything is visible before placing the order. %>
+  <ol class="mt-6 flex items-center gap-2 text-sm sm:gap-4" aria-label="Checkout steps">
+    <% [ [ "Shipping", "shipping" ], [ "Payment", "payment" ], [ "Review", "review" ] ].each_with_index do |(label, anchor), index| %>
+      <% if index.positive? %><li class="h-px w-6 bg-line sm:w-12" aria-hidden="true"></li><% end %>
+      <li>
+        <a href="#<%= anchor %>" class="flex min-h-11 items-center gap-2 rounded font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand <%= index.zero? ? 'text-ink' : 'text-muted hover:text-ink' %>">
+          <span class="flex size-7 items-center justify-center rounded-full text-[13px] font-semibold <%= index.zero? ? 'bg-brand-strong text-white' : 'bg-surface text-muted ring-1 ring-line' %>"><%= index + 1 %></span>
+          <%= label %>
+        </a>
+      </li>
+    <% end %>
+  </ol>
+
+  <div class="mt-8 grid gap-8 lg:grid-cols-[1fr_400px] lg:items-start lg:gap-10">
+    <%= form_with model: @order, url: checkout_path, method: :post, id: "checkout_form", class: "min-w-0 space-y-6" do |f| %>
+      <section id="shipping" class="scroll-mt-8 rounded-2xl border border-line bg-surface p-5 sm:p-8" aria-labelledby="shipping_heading">
+        <h2 id="shipping_heading" class="flex items-center gap-3 text-lg font-semibold">
+          <span class="flex size-7 items-center justify-center rounded-full bg-ink text-[13px] text-white" aria-hidden="true">1</span>
+          Shipping address
+        </h2>
+
+        <div class="mt-6">
+          <%= render "shared/error_messages", object: @order %>
         </div>
+
+        <div class="grid gap-5 sm:grid-cols-6">
+          <div class="sm:col-span-6"><%= field.(f, :shipping_name, "Full name", required: true, autocomplete: "name") %></div>
+          <div class="sm:col-span-6"><%= field.(f, :shipping_address_line1, "Address", required: true, autocomplete: "address-line1", placeholder: "Street address") %></div>
+          <div class="sm:col-span-6"><%= field.(f, :shipping_address_line2, "Apartment, suite, etc. (optional)", autocomplete: "address-line2") %></div>
+          <div class="sm:col-span-3"><%= field.(f, :shipping_city, "City", required: true, autocomplete: "address-level2") %></div>
+          <div class="sm:col-span-1"><%= field.(f, :shipping_state, "State", required: true, autocomplete: "address-level1") %></div>
+          <div class="sm:col-span-2"><%= field.(f, :shipping_zip, "ZIP code", required: true, autocomplete: "postal-code", inputmode: "numeric") %></div>
+        </div>
+      </section>
+
+      <section id="payment" class="scroll-mt-8 rounded-2xl border border-line bg-surface p-5 sm:p-8" aria-labelledby="payment_heading">
+        <h2 id="payment_heading" class="flex items-center gap-3 text-lg font-semibold">
+          <span class="flex size-7 items-center justify-center rounded-full bg-ink text-[13px] text-white" aria-hidden="true">2</span>
+          Payment
+        </h2>
+        <div class="mt-6 flex min-w-0 items-start gap-4 rounded-xl border-2 border-brand bg-brand-soft/60 p-4">
+          <%= icon(:credit_card, css_class: "mt-0.5 size-6 shrink-0 text-brand-strong") %>
+          <div>
+            <p class="font-semibold">Demo payment</p>
+            <p class="mt-1 text-sm text-muted-strong">This is a demo store: no card is needed and nothing is charged. Placing the order completes it right away.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="review" class="scroll-mt-8 rounded-2xl border border-line bg-surface p-5 sm:p-8" aria-labelledby="review_heading">
+        <h2 id="review_heading" class="flex items-center gap-3 text-lg font-semibold">
+          <span class="flex size-7 items-center justify-center rounded-full bg-ink text-[13px] text-white" aria-hidden="true">3</span>
+          Review items
+        </h2>
+        <ul class="mt-4 divide-y divide-divider">
+          <% @cart_items.each do |cart_item| %>
+            <li class="flex items-center gap-4 py-4">
+              <div class="relative size-16 shrink-0 overflow-hidden rounded-lg bg-subtle"><%= product_image_tag cart_item.product, sizes: :thumb %></div>
+              <div class="min-w-0 flex-1">
+                <p class="text-[15px] leading-snug font-medium break-words"><%= cart_item.product.name %></p>
+                <p class="text-sm text-muted">Qty <%= cart_item.quantity %> &times; <%= format_price_cents(cart_item.product.price_cents) %></p>
+              </div>
+              <p class="price shrink-0 text-[15px]"><%= format_price_cents(cart_item.product.price_cents * cart_item.quantity) %></p>
+            </li>
+          <% end %>
+        </ul>
+        <%# Mobile / tablet: the summary sits below, so the button lives here. %>
+        <%= f.submit "Place Order", data: { turbo_submits_with: "Placing order…" }, class: "btn-primary btn-lg mt-4 w-full lg:hidden" %>
+      </section>
+    <% end %>
+
+    <aside class="min-w-0 rounded-2xl border border-line bg-surface p-5 sm:p-6 lg:sticky lg:top-8" aria-labelledby="checkout_summary_heading">
+      <h2 id="checkout_summary_heading" class="text-lg font-semibold">Order summary</h2>
+      <dl class="mt-5 space-y-3 text-[15px]">
+        <div class="flex justify-between gap-4">
+          <dt class="text-muted">Subtotal (<%= pluralize(@cart_items.sum(&:quantity), "item") %>)</dt>
+          <dd class="font-medium tabular-nums"><%= format_price_cents(subtotal) %></dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt class="text-muted">Shipping</dt>
+          <dd class="font-medium tabular-nums <%= 'text-success' if shipping.zero? %>"><%= shipping.zero? ? "Free" : format_price_cents(shipping) %></dd>
+        </div>
+        <div class="flex justify-between gap-4 border-t border-divider pt-4">
+          <dt class="font-semibold">Total</dt>
+          <dd class="price text-2xl"><%= format_price_cents(subtotal + shipping) %></dd>
+        </div>
+      </dl>
+      <% if shipping.positive? %>
+        <p class="mt-3 text-sm text-muted">Free shipping on orders over <%= format_price_cents(Order::FREE_SHIPPING_THRESHOLD_CENTS, trim: true) %>.</p>
       <% end %>
-    </div>
-    <div class="<%= card_classes("mt-4 p-4 flex items-center justify-between") %>">
-      <span class="font-semibold text-gray-900">Total</span>
-      <span class="text-xl font-bold text-gray-900"><%= format_price_cents(@cart.total_cents) %></span>
-    </div>
+      <button type="submit" form="checkout_form" data-turbo-submits-with="Placing order…" class="btn-primary btn-lg mt-6 hidden w-full lg:inline-flex">
+        Place Order
+      </button>
+      <p class="mt-4 flex items-center justify-center gap-2 text-xs text-muted"><%= icon(:lock, css_class: "size-3.5") %>Your details are sent over an encrypted connection.</p>
+    </aside>
   </div>
 </div>

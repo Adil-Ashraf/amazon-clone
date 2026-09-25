@@ -11,6 +11,8 @@ module AuthenticationHelpers
       fill_in "Email", with: user.email
       fill_in "Password", with: password
       click_button "Sign In"
+      # Wait for the redirect, so the next visit can't cancel the sign-in request.
+      assert_no_current_path(new_session_path)
     end
   end
 end

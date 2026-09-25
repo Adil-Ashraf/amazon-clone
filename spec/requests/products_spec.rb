@@ -122,6 +122,49 @@ RSpec.describe "Products", type: :request do
       end
     end
 
+    context "with filters" do
+      let!(:sold_out) { create(:product, :sold_out, price_cents: 5000, category: books) }
+      let!(:on_sale) { create(:product, :on_sale, price_cents: 2000, category: books, rating_average: 4.5, reviews_count: 2) }
+
+      context "in stock only" do
+        before { get_products(in_stock: "1") }
+
+        it "leaves out sold-out products" do
+          expect(response_link_hrefs).to include(product_path(on_sale)).and exclude(product_path(sold_out))
+        end
+      end
+
+      context "on sale" do
+        before { get_products(deals: "1") }
+
+        it "shows only marked-down products" do
+          expect(response_link_hrefs).to include(product_path(on_sale)).and exclude(product_path(novel))
+        end
+      end
+
+      context "by price range" do
+        before { get_products(price_min: "15", price_max: "30") }
+
+        it "keeps products inside the range" do
+          expect(response_link_hrefs).to include(product_path(on_sale)).and exclude(product_path(sold_out), product_path(novel))
+        end
+      end
+
+      context "by rating" do
+        before { get_products(rating: "4") }
+
+        it "keeps products rated at least that high" do
+          expect(response_link_hrefs).to include(product_path(on_sale)).and exclude(product_path(novel))
+        end
+      end
+
+      context "in list view" do
+        before { get_products(view: "list") }
+
+        it { expect(response).to have_http_status(:ok) }
+      end
+    end
+
     context "with a page past the last page and a sort" do
       before { get_products(sort: "price_desc", page: 999) }
 

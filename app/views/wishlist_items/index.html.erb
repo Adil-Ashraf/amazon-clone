@@ -1,0 +1,12 @@
+<% content_for :title, "My Wishlist" %>
+
+<div class="page py-8 lg:py-12">
+  <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="page-title">My Wishlist</h1>
+      <p class="mt-2 text-[15px] text-muted">Saved items stay here until you&rsquo;re ready. Prices and stock are always current.</p>
+    </div>
+  </div>
+
+  <%= render "list", wishlist_items: @wishlist_items, bag_quantities: @bag_quantities, wishlist_ids: @wishlist_ids %>
+</div>

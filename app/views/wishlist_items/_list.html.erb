@@ -1,0 +1,12 @@
+<%# locals: (wishlist_items:, bag_quantities:, wishlist_ids:) %>
+<div id="wishlist_items">
+  <% if wishlist_items.any? %>
+    <h2 class="mb-4 text-sm font-normal text-muted tabular-nums"><%= pluralize(wishlist_items.size, "saved item") %></h2>
+    <%= render "products/grid", products: wishlist_items.map(&:product), bag_quantities: bag_quantities, wishlist_ids: wishlist_ids, layout: :listing %>
+  <% else %>
+    <%= render "shared/empty_state", icon: :heart,
+          title: "Your wishlist is waiting.",
+          body: "Tap the heart on anything you like and it will be saved here for later.",
+          action_label: "Discover products", action_path: products_path %>
+  <% end %>
+</div>

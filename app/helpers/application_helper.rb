@@ -1,6 +1,8 @@
 module ApplicationHelper
-  def format_price_cents(cents)
-    number_to_currency(cents / 100.0)
+  # trim: true drops ".00" for promotional copy ("Free shipping over $50");
+  # transaction amounts always keep their cents.
+  def format_price_cents(cents, trim: false)
+    number_to_currency(cents / 100.0, precision: trim && (cents % 100).zero? ? 0 : 2)
   end
 
   # The .input component class (docs/DESIGN.md) for text/email/password/number

@@ -1,0 +1,95 @@
+<%# locals: (product:, reviews:, rating_counts:, can_review:) %>
+<section id="reviews" class="mt-16 scroll-mt-48 border-t border-line pt-10 lg:mt-20" aria-labelledby="reviews_heading">
+  <div class="grid gap-10 lg:grid-cols-[320px_1fr] lg:gap-16">
+    <div>
+      <h2 id="reviews_heading" class="h3">Customer reviews</h2>
+      <% if product.reviewed? %>
+        <div class="mt-5 flex items-center gap-4">
+          <p class="text-5xl font-semibold tracking-tight tabular-nums"><%= format("%.1f", product.rating_average) %></p>
+          <div>
+            <%= rating_stars(product.rating_average.to_f, css_class: "size-5") %>
+            <p class="mt-1 text-sm text-muted">Based on <%= pluralize(product.reviews_count, "review") %></p>
+          </div>
+        </div>
+        <ul class="mt-6 space-y-2" aria-label="Rating breakdown">
+          <% 5.downto(1) do |stars| %>
+            <% count = rating_counts[stars].to_i %>
+            <li class="flex items-center gap-3 text-sm">
+              <span class="w-12 shrink-0 text-muted tabular-nums"><%= stars %> star</span>
+              <span class="h-2 flex-1 overflow-hidden rounded-full bg-divider" aria-hidden="true">
+                <span class="block h-full rounded-full bg-brand" style="width: <%= (count * 100.0 / product.reviews_count).round %>%"></span>
+              </span>
+              <span class="w-8 shrink-0 text-right text-muted tabular-nums"><%= count %></span>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="mt-3 text-[15px] text-muted">No reviews yet.</p>
+      <% end %>
+
+      <div class="mt-8 rounded-2xl bg-surface p-5 ring-1 ring-line">
+        <% if can_review %>
+          <h3 class="text-[15px] font-semibold">Review this product</h3>
+          <p class="mt-1 text-sm text-muted">You bought this item. Tell others what you think.</p>
+          <%= form_with model: [ product, Review.new ], class: "mt-5 space-y-4" do |f| %>
+            <fieldset>
+              <legend class="label">Your rating</legend>
+              <div class="-ml-1.5 flex flex-row-reverse justify-end">
+                <% 5.downto(1) do |stars| %>
+                  <%= f.radio_button :rating, stars, required: true, class: "peer sr-only", id: "review_rating_#{stars}" %>
+                  <label for="review_rating_<%= stars %>" class="cursor-pointer rounded-lg p-1.5 text-line transition-colors hover:text-brand peer-checked:text-brand peer-hover:text-brand peer-focus-visible:ring-2 peer-focus-visible:ring-brand [&:hover~label]:text-brand peer-checked:[&~label]:text-brand">
+                    <%= icon(:star, css_class: "size-8 fill-current") %><span class="sr-only"><%= pluralize(stars, "star") %></span>
+                  </label>
+                <% end %>
+              </div>
+            </fieldset>
+            <div>
+              <%= f.label :body, "Your review", class: "label" %>
+              <%= f.text_area :body, rows: 4, required: true, maxlength: 2000,
+                    placeholder: "What did you like or dislike?", class: "input h-auto py-3" %>
+            </div>
+            <%= f.submit "Post review", data: { turbo_submits_with: "Posting…" }, class: "btn-primary w-full" %>
+          <% end %>
+        <% elsif !logged_in? %>
+          <p class="text-sm text-muted">Bought this item? <%= link_to "Sign in", new_session_path, class: "link" %> to leave a review.</p>
+        <% else %>
+          <p class="text-sm text-muted">Reviews come only from customers who bought this item, so every rating here is from a real order.</p>
+        <% end %>
+      </div>
+    </div>
+
+    <div>
+      <% if reviews.any? %>
+        <ul class="divide-y divide-divider">
+          <% reviews.each do |review| %>
+            <% first, *rest = review.user.name.split %>
+            <li class="py-6 first:pt-0">
+              <div class="flex items-center gap-3">
+                <span class="flex size-10 items-center justify-center rounded-full bg-subtle text-sm font-semibold text-ink" aria-hidden="true"><%= first[0] %><%= rest.last&.first %></span>
+                <div>
+                  <p class="text-[15px] font-semibold"><%= first %> <%= "#{rest.last[0]}." if rest.any? %></p>
+                  <p class="flex items-center gap-1.5 text-xs text-success"><%= icon(:check_circle, css_class: "size-3.5") %>Verified purchase</p>
+                </div>
+                <time datetime="<%= review.created_at.to_date.iso8601 %>" class="ml-auto text-sm text-muted"><%= review.created_at.strftime("%b %-d, %Y") %></time>
+              </div>
+              <div class="mt-3 flex items-center gap-2">
+                <%= rating_stars(review.rating, css_class: "size-4") %>
+                <span class="sr-only">Rated <%= review.rating %> out of 5</span>
+              </div>
+              <p class="mt-2 text-[15px] leading-relaxed text-ink/85"><%= review.body %></p>
+            </li>
+          <% end %>
+        </ul>
+        <% if product.reviews_count > reviews.size %>
+          <p class="mt-2 text-sm text-muted">Showing the <%= reviews.size %> most recent of <%= product.reviews_count %> reviews.</p>
+        <% end %>
+      <% else %>
+        <div class="flex h-full min-h-48 flex-col items-center justify-center rounded-2xl border border-dashed border-line px-6 py-12 text-center">
+          <%= icon(:star, css_class: "size-8 text-line", stroke_width: 1.5) %>
+          <p class="mt-3 font-semibold">Be the first to review this</p>
+          <p class="mt-1 max-w-xs text-sm text-muted">Once someone who bought it shares their thoughts, you&rsquo;ll see them here.</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</section>

@@ -1,5 +1,5 @@
 <span id="cart_count"
       aria-live="polite"
-      class="<%= cart_item_count.zero? ? "hidden" : "inline-flex" %> min-w-5 h-5 items-center justify-center rounded-full bg-ink px-1.5 text-xs font-semibold tabular-nums text-surface">
-  <%= cart_item_count %><span class="sr-only"> items in bag</span>
+      class="<%= cart_item_count.zero? ? "hidden" : "inline-flex" %> absolute -top-1.5 -right-2 h-5 min-w-5 items-center justify-center rounded-full bg-brand-strong px-1.5 text-[11px] font-semibold tabular-nums text-white ring-2 ring-surface">
+  <%= cart_item_count %><span class="sr-only"> items in cart</span>
 </span>

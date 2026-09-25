@@ -12,6 +12,11 @@ module ResponseHelpers
   def turbo_stream_targets
     response_document.css("turbo-stream[target]").map { |stream| stream["target"] }
   end
+
+  # CSS selectors of streams that update every matching element.
+  def turbo_stream_all_targets
+    response_document.css("turbo-stream[targets]").map { |stream| stream["targets"] }
+  end
 end
 
 RSpec.configure do |config|

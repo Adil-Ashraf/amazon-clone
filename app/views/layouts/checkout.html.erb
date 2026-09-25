@@ -1,0 +1,27 @@
+<%# Checkout: the application layout without shopping navigation, so
+    nothing competes with finishing the order. %>
+<% content_for :header do %>
+  <header class="border-b border-line bg-surface">
+    <div class="page flex h-16 items-center justify-between gap-4 lg:h-[76px]">
+      <%= render "shared/logo" %>
+      <p class="flex items-center gap-2 text-sm font-semibold text-ink">
+        <%= icon(:lock, css_class: "size-[18px] text-success") %> Secure Checkout
+      </p>
+    </div>
+  </header>
+<% end %>
+
+<% content_for :footer do %>
+  <footer class="mt-16 border-t border-line">
+    <div class="page flex flex-col gap-2 py-6 text-[13px] text-muted sm:flex-row sm:justify-between">
+      <p>&copy; <%= Date.current.year %> Aisle Market. A demo store &mdash; no real payments are processed.</p>
+      <p class="flex gap-4">
+        <%= link_to "Returns", page_path("returns"), class: "quiet-link text-muted" %>
+        <%= link_to "Privacy", page_path("privacy"), class: "quiet-link text-muted" %>
+        <%= link_to "Help", page_path("help"), class: "quiet-link text-muted" %>
+      </p>
+    </div>
+  </footer>
+<% end %>
+
+<%= render template: "layouts/application" %>

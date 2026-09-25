@@ -13,5 +13,9 @@ FactoryBot.define do
     trait :sold_out do
       stock { 0 }
     end
+
+    trait :on_sale do
+      compare_at_price_cents { price_cents + 500 }
+    end
   end
 end

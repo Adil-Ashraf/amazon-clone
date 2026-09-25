@@ -20,10 +20,6 @@ RSpec.describe Category, type: :model do
     it "resolves its icon" do
       expect(category.icon_key).to eq(:chip)
     end
-
-    it "resolves its colour" do
-      expect(category.color_hex).to eq("#2563eb")
-    end
   end
 
   context "with an unknown slug" do

@@ -1,0 +1,70 @@
+<%# locals: (nav_items:) %>
+<%# Everything the desktop header shows, for small screens. A <dialog> opened
+    by drawer_controller on the header. %>
+<dialog id="mobile_nav" class="drawer drawer-left lg:hidden" aria-label="Menu"
+        data-drawer-target="dialog" data-action="click->drawer#closeOnBackdrop">
+  <div class="flex h-full flex-col">
+    <div class="flex h-16 shrink-0 items-center justify-between border-b border-divider px-4">
+      <%= render "shared/logo" %>
+      <button type="button" class="icon-btn -mr-2" data-action="drawer#close" aria-label="Close menu" autofocus>
+        <%= icon(:close, css_class: "size-6") %>
+      </button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto px-4 py-5">
+      <% if logged_in? %>
+        <div class="mb-5 rounded-xl bg-subtle px-4 py-3">
+          <p class="text-xs text-muted-strong">Signed in as</p>
+          <p class="truncate text-sm font-semibold"><%= current_user.email %></p>
+        </div>
+      <% else %>
+        <div class="mb-6 grid grid-cols-2 gap-2">
+          <%= link_to "Sign in", new_session_path, class: "btn-secondary" %>
+          <%= link_to "Create account", new_registration_path, class: "btn-primary" %>
+        </div>
+      <% end %>
+
+      <nav aria-label="Shop (menu)">
+        <ul class="space-y-0.5">
+          <% nav_items.each do |label, path, active| %>
+            <li>
+              <%= link_to label, path, "aria-current": (active ? "page" : nil),
+                    class: "flex min-h-11 items-center rounded-btn px-3 text-[15px] font-medium hover:bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand #{active ? 'bg-brand-soft text-brand-strong' : 'text-ink'}" %>
+            </li>
+          <% end %>
+        </ul>
+
+        <p class="eyebrow mt-6 mb-2 px-3 text-muted">Categories</p>
+        <ul class="space-y-0.5">
+          <% nav_categories.sort_by(&:name).each do |category| %>
+            <li>
+              <%= link_to products_path(category: category.slug),
+                    class: "flex min-h-11 items-center gap-3 rounded-btn px-3 text-[15px] text-ink hover:bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" do %>
+                <%= category_icon(category, css_class: "size-[18px] text-muted") %><%= category.name %>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+
+        <p class="eyebrow mt-6 mb-2 px-3 text-muted">Your account</p>
+        <ul class="space-y-0.5">
+          <% [ [ "My Account", account_path, :user ], [ "Orders", orders_path, :package ], [ "Wishlist", wishlist_items_path, :heart ],
+               [ "Help", page_path("help"), :support ], [ "Sell on Aisle Market", page_path("sell"), :tag ] ].each do |label, path, icon_name| %>
+            <li>
+              <%= link_to path, class: "flex min-h-11 items-center gap-3 rounded-btn px-3 text-[15px] text-ink hover:bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" do %>
+                <%= icon(icon_name, css_class: "size-[18px] text-muted") %><%= label %>
+              <% end %>
+            </li>
+          <% end %>
+        </ul>
+      </nav>
+    </div>
+
+    <% if logged_in? %>
+      <div class="shrink-0 border-t border-divider p-4">
+        <%= button_to "Sign out", session_path, method: :delete, form_class: "w-full",
+              data: { turbo_submits_with: "Signing out…" }, class: "btn-secondary w-full" %>
+      </div>
+    <% end %>
+  </div>
+</dialog>

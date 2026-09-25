@@ -1,21 +1,23 @@
 class SessionsController < ApplicationController
   def new
+    @showcase = showcase_product
   end
 
   def create
     user = User.authenticate_by(email: params[:email], password: params[:password])
 
     if user
-      session[:user_id] = user.id
-      redirect_to root_path, notice: "Signed in successfully."
+      sign_in(user)
+      redirect_to root_path, notice: "Welcome back, #{user.name.split.first}."
     else
-      flash.now[:alert] = "Invalid email or password."
+      @sign_in_error = "That email and password don't match an account. Check them and try again."
+      @showcase = showcase_product
       render :new, status: :unprocessable_entity
     end
   end
 
   def destroy
     reset_session
-    redirect_to root_path, notice: "Signed out."
+    redirect_to root_path, notice: "You have signed out."
   end
 end

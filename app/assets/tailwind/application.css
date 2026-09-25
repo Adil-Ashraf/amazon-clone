@@ -1,92 +1,270 @@
 @import "tailwindcss";
 
-/* Aisle design tokens. docs/DESIGN.md is the source of truth for these. */
+/* Aisle Market design tokens. docs/DESIGN.md is the source of truth for these. */
 @theme {
-  --color-bg: #FAF8F5;
+  --color-bg: #F8F6F2;
   --color-surface: #FFFFFF;
-  --color-subtle: #F3F0EB;
-  --color-ink: #1A1A1A;
-  --color-muted: #6B6B6B;
-  --color-line: #E8E4DE;
-  --color-accent: #1F5E4B;
-  --color-accent-soft: #E6EFEB;
-  --color-warn: #B7791F;
-  --color-warn-soft: #FBF3E4;
-  --color-danger: #B42318;
-  --color-danger-soft: #FDECEA;
+  --color-subtle: #F3F1EC;
+  --color-ink: #172033;
+  --color-muted: #667085;
+  /* Secondary text on tinted surfaces (subtle, washes, brand-soft), where
+     muted drops under 4.5:1. 6.4:1 on wash-sand. */
+  --color-muted-strong: #4B5565;
+  --color-line: #E7E5E0;
+  --color-divider: #EEECE7;
+
+  /* Aisle Orange. `brand` is the true brand hue for fills without text
+     (dots, bars, focus rings, badges with ink text). White text on it is
+     only 2.8:1, so buttons and orange text use `brand-strong` (5.2:1). */
+  --color-brand: #F97316;
+  --color-brand-strong: #C2410C;
+  --color-brand-deep: #9A3412;
+  --color-brand-soft: #FFF1E7;
+
+  --color-success: #198754;
+  --color-success-soft: #EAF7F0;
+  --color-danger: #DC2626;
+  --color-danger-soft: #FEF2F2;
+  /* #D97706 for dots and fills; text uses warn-strong for contrast. */
+  --color-warn: #D97706;
+  --color-warn-strong: #B45309;
+  --color-warn-soft: #FEF6E7;
+
+  /* Pastel washes for promotional banners and category tiles. */
+  --color-wash-peach: #FDEEE3;
+  --color-wash-sage: #E9EFE6;
+  --color-wash-sky: #E6EEF6;
+  --color-wash-sand: #F3ECE0;
+  /* Warm neutral for product tiles without a photo. */
+  --color-stone: #F1EEE7;
 
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Instrument Serif", Georgia, serif;
+
+  --radius-btn: 10px;
+  --radius-hero: 20px;
+
+  --shadow-float: 0 8px 30px rgb(23 32 51 / 0.08);
+  --shadow-lift: 0 10px 24px -8px rgb(23 32 51 / 0.12);
+
+  --container-page: 1280px;
 }
 
-/* This app only has a light design. Without this, browsers that are in system
-   dark mode auto-style native form controls (inputs, buttons) with a dark
-   background, which combined with our explicit dark text classes made typed
-   text unreadable -- the control's own background went dark while our CSS
-   still forced dark text on top of it. */
+/* This app only has a light design. Without this, browsers in system dark
+   mode auto-style native form controls with a dark background. */
 :root {
   color-scheme: light;
 }
 
-/* Subtle loading feedback while a Turbo Frame (e.g. live search/category
-   filtering) is fetching its replacement content. */
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    /* Keep keyboard focus and #anchors clear of the sticky header. */
+    scroll-padding-top: 5.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    html {
+      scroll-padding-top: 9rem;
+    }
+  }
+
+  body {
+    font-feature-settings: "cv11";
+  }
+
+  h1, h2, h3, h4 {
+    letter-spacing: -0.015em;
+  }
+
+  ::selection {
+    background-color: var(--color-brand-soft);
+    color: var(--color-ink);
+  }
+
+  dialog::backdrop {
+    background-color: rgb(23 32 51 / 0.4);
+  }
+}
+
+/* Subtle loading feedback while a Turbo Frame (e.g. catalog filtering) is
+   fetching its replacement content. */
 turbo-frame[busy] {
   opacity: 0.6;
   transition: opacity 150ms ease-in-out;
 }
 
 @layer components {
+  .page {
+    @apply mx-auto w-full max-w-(--container-page) px-4 md:px-6 lg:px-10;
+  }
+
+  /* Type scale (docs/DESIGN.md section 3). */
+  /* Home hero headline only. */
+  .h1 {
+    @apply text-[30px] leading-[1.12] font-semibold tracking-tight text-ink sm:text-[36px] lg:text-[48px];
+  }
+
+  /* The <h1> on every other page: 28 / 32 / 40px. */
+  .page-title {
+    @apply text-[28px] leading-[1.15] font-semibold tracking-tight text-ink sm:text-[32px] lg:text-[40px];
+  }
+
+  .h2 {
+    @apply text-2xl leading-tight font-semibold tracking-tight text-ink sm:text-[28px] lg:text-[32px];
+  }
+
+  .h3 {
+    @apply text-xl leading-snug font-semibold text-ink lg:text-[22px];
+  }
+
+  .eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-brand-strong;
+  }
+
   /* Shared base: every variant works on its own or alongside .btn. */
   .btn,
   .btn-primary,
   .btn-secondary,
-  .btn-ghost {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium
-      transition-colors cursor-pointer
-      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2
-      disabled:cursor-not-allowed disabled:opacity-50;
+  .btn-tertiary,
+  .btn-card,
+  .btn-danger {
+    @apply inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-btn px-5 text-[15px] leading-none font-semibold whitespace-nowrap
+      transition-[color,background-color,border-color,transform] duration-200
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-bg
+      disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50;
   }
 
   .btn-primary {
-    @apply bg-ink text-surface hover:bg-ink/85 disabled:hover:bg-ink;
+    @apply bg-brand-strong text-white hover:bg-brand-deep active:translate-y-px disabled:hover:bg-brand-strong;
   }
 
   .btn-secondary {
-    @apply border border-line bg-surface text-ink hover:bg-subtle disabled:hover:bg-surface;
+    @apply border border-ink bg-surface text-ink hover:bg-subtle active:translate-y-px disabled:hover:bg-surface;
   }
 
-  .btn-ghost {
+  /* Add to Cart on product cards: quiet at rest so a grid isn't a wall of
+     orange, orange on hover/focus. Solid orange stays for the product page,
+     cart and checkout. */
+  .btn-card {
+    @apply border border-ink/20 bg-surface text-ink hover:border-brand-strong hover:bg-brand-soft hover:text-brand-strong active:translate-y-px;
+  }
+
+  .btn-tertiary {
     @apply text-ink hover:bg-subtle disabled:hover:bg-transparent;
   }
 
+  .btn-danger {
+    @apply text-danger hover:bg-danger-soft;
+  }
+
+  .btn-lg {
+    @apply min-h-12 px-6;
+  }
+
+  .icon-btn {
+    @apply inline-flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full text-ink transition-colors duration-200 hover:bg-subtle
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-bg
+      disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
   .input {
-    @apply min-h-11 rounded-lg border border-line bg-surface px-3 text-ink placeholder:text-muted
-      focus-visible:outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2;
+    @apply h-12 w-full rounded-btn border border-line bg-surface px-4 text-[15px] text-ink outline-none placeholder:text-muted
+      transition-[border-color,box-shadow] duration-150
+      hover:border-muted/50 focus:border-brand focus:ring-4 focus:ring-brand/15
+      aria-invalid:border-danger aria-invalid:focus:ring-danger/15;
   }
 
   .label {
-    @apply block mb-1 text-sm font-medium text-ink;
+    @apply mb-2 block text-sm font-medium text-ink;
   }
 
   .card {
-    @apply rounded-xl border border-line bg-surface;
+    @apply rounded-2xl border border-line bg-surface;
   }
 
   .chip {
-    @apply inline-flex min-h-11 items-center rounded-full border border-line bg-surface px-4 text-sm font-medium text-ink
-      transition-colors hover:bg-subtle
-      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2;
+    @apply inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-full border border-line bg-surface px-4 text-sm font-medium whitespace-nowrap text-ink
+      transition-colors duration-200 hover:border-ink/30
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-bg;
   }
 
+  /* Active / selected = orange, everywhere (chips, pagination, view toggle,
+     category list). */
   .chip-active {
-    @apply border-accent bg-accent text-surface hover:bg-accent;
+    @apply border-brand bg-brand-soft text-brand-strong hover:border-brand;
+  }
+
+  /* Selected state for small controls (current page, grid/list view). */
+  .selected {
+    @apply bg-brand-soft font-semibold text-brand-strong ring-1 ring-brand ring-inset;
   }
 
   .pill {
-    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium;
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium whitespace-nowrap;
   }
 
   .price {
-    @apply font-medium tabular-nums;
+    @apply font-bold tabular-nums tracking-tight text-ink;
+  }
+
+  .link {
+    @apply rounded font-medium text-brand-strong underline-offset-4 hover:underline
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand;
+  }
+
+  /* Plain text link that only reveals itself on hover (header, footer). */
+  .quiet-link {
+    @apply rounded text-ink transition-colors duration-150 hover:text-brand-strong
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2;
+  }
+}
+
+/* Drawers are <dialog> elements (drawer_controller.js) that slide in from
+   the edge. Reduced motion gets the drawer without the slide. */
+@keyframes drawer-in-left {
+  from { transform: translateX(-100%); }
+}
+
+@keyframes drawer-in-right {
+  from { transform: translateX(100%); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+@layer components {
+  .drawer {
+    position: fixed;
+    inset-block: 0;
+    margin: 0;
+    height: 100dvh;
+    max-height: 100dvh;
+    width: min(88vw, 380px);
+    max-width: none;
+    padding: 0;
+    background-color: var(--color-surface);
+    box-shadow: var(--shadow-float);
+  }
+
+  .drawer-left { left: 0; right: auto; }
+  .drawer-right { right: 0; left: auto; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .drawer-left[open] { animation: drawer-in-left 220ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .drawer-right[open] { animation: drawer-in-right 220ms cubic-bezier(0.2, 0.8, 0.2, 1); }
+  .drawer[open]::backdrop { animation: fade-in 200ms ease-out; }
+  .toast { animation: toast-in 200ms ease-out; }
+}
+
+/* On phones, toasts sit above the sticky action bars (product page, cart). */
+@media (max-width: 639px) {
+  body:has(.sticky-action-bar) #toasts {
+    bottom: 6rem;
   }
 }

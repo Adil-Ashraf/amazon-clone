@@ -5,7 +5,7 @@ class Category < ApplicationRecord
   validates :slug, presence: true, uniqueness: true
 
   # Which glyph (see CategoriesHelper::ICON_PATHS) represents this category,
-  # used for both the category chips and the designed product tiles
+  # used for both the category menus and the designed product tiles
   # (ProductsHelper#product_image_tag) -- kept as data here, rendered as
   # markup in the helper.
   ICON_KEYS = {
@@ -19,24 +19,9 @@ class Category < ApplicationRecord
     "office-supplies" => :briefcase
   }.freeze
 
-  COLOR_HEXES = {
-    "electronics" => "#2563eb",
-    "home-kitchen" => "#d97706",
-    "books" => "#9333ea",
-    "clothing" => "#db2777",
-    "sports-outdoors" => "#16a34a",
-    "beauty-personal-care" => "#e11d48",
-    "toys-games" => "#ea580c",
-    "office-supplies" => "#475569"
-  }.freeze
-
   DEFAULT_ICON_KEY = :tag
 
   def icon_key
     ICON_KEYS.fetch(slug, DEFAULT_ICON_KEY)
-  end
-
-  def color_hex
-    COLOR_HEXES.fetch(slug, "#64748b")
   end
 end

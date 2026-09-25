@@ -1,10 +1,11 @@
 import { Controller } from "@hotwired/stimulus"
 
 // Disclosure menu: the button toggles the panel; a click outside or Esc
-// closes it. Window listeners are Stimulus actions on the element
+// closes it. An optional focus target (e.g. a search field) gets focus
+// when the panel opens. Window listeners are Stimulus actions on the element
 // (click@window, keydown.esc@window), so Stimulus removes them on disconnect.
 export default class extends Controller {
-  static targets = ["button", "panel"]
+  static targets = ["button", "panel", "focus"]
 
   toggle() {
     this.panelTarget.hidden ? this.open() : this.close()
@@ -13,6 +14,7 @@ export default class extends Controller {
   open() {
     this.panelTarget.hidden = false
     this.buttonTarget.setAttribute("aria-expanded", "true")
+    if (this.hasFocusTarget) this.focusTarget.focus()
   }
 
   close() {

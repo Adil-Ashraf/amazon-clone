@@ -44,6 +44,26 @@ RSpec.describe "Authentication", type: :request do
           expect(response).to have_http_status(:ok)
         end
       end
+
+      context "after browsing as a guest" do
+        def browse_as_guest
+          get product_path(create(:product))
+          @guest_session_id = session.id.to_s
+        end
+
+        before do
+          browse_as_guest
+          sign_up(valid_params)
+        end
+
+        it "had a guest session to replace" do
+          expect(@guest_session_id).to be_present
+        end
+
+        it "issues a new session id" do
+          expect(session.id.to_s).not_to eq(@guest_session_id)
+        end
+      end
     end
 
     context "with invalid details" do
@@ -74,10 +94,49 @@ RSpec.describe "Authentication", type: :request do
       end
     end
 
+    context "with valid credentials after browsing as a guest" do
+      let(:product) { create(:product) }
+
+      def browse_as_guest
+        get product_path(product)
+        @guest_session_id = session.id.to_s
+      end
+
+      before do
+        browse_as_guest
+        sign_in_as(user)
+      end
+
+      it "had a guest session to replace" do
+        expect(@guest_session_id).to be_present
+      end
+
+      it "issues a new session id" do
+        expect(session.id.to_s).not_to eq(@guest_session_id)
+      end
+
+      it "signs the user into the new session" do
+        expect(session[:user_id]).to eq(user.id)
+      end
+
+      it "keeps the guest's recently viewed products" do
+        expect(session[:recently_viewed]).to eq([ product.id ])
+      end
+    end
+
     context "with an invalid password" do
       before { sign_in_as(user, password: "wrong-password") }
 
       it { expect(response).to have_http_status(:unprocessable_content) }
+
+      it "marks both fields invalid and points them at the inline error" do
+        fields = response_document.css("input#email, input#password")
+        expect(fields.map { |field| [ field["aria-invalid"], field["aria-describedby"] ] }).to all(eq([ "true", "sign_in_error" ]))
+      end
+
+      it "renders the inline error the fields point to" do
+        expect(response_document.at_css("#sign_in_error[role='alert']")).to be_present
+      end
 
       context "when visiting the cart afterwards" do
         before { visit_cart }

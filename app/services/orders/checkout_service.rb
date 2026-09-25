@@ -27,9 +27,12 @@ module Orders
           end
         end
 
-        total_cents = cart_items.sum { |cart_item| cart_item.product.price_cents * cart_item.quantity }
+        subtotal_cents = cart_items.sum { |cart_item| cart_item.product.price_cents * cart_item.quantity }
+        shipping_cents = Order.shipping_cents_for(subtotal_cents)
 
-        order = @user.orders.create!(@shipping_attributes.merge(status: :paid, total_cents: total_cents))
+        order = @user.orders.create!(
+          @shipping_attributes.merge(status: :paid, shipping_cents: shipping_cents, total_cents: subtotal_cents + shipping_cents)
+        )
 
         cart_items.each do |cart_item|
           product = cart_item.product

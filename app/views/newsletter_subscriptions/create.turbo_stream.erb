@@ -1,0 +1,3 @@
+<%= turbo_stream.replace "newsletter_form" do %>
+  <%= render "home/newsletter_form", subscribed: @subscribed, email: @subscription.email %>
+<% end %>

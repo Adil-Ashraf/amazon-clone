@@ -5,5 +5,6 @@ class CartsController < ApplicationController
     @cart = current_user.cart
     authorize @cart
     @cart_items = @cart.cart_items.includes(:product).order(:created_at)
+    @saved_items = current_user.wishlist_items.includes(product: :category).order(created_at: :desc)
   end
 end

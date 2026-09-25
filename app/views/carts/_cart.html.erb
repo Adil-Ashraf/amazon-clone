@@ -1,19 +1,81 @@
+<%# locals: (cart:, cart_items:) %>
 <% if cart_items.any? %>
-  <div class="<%= card_classes("divide-y divide-gray-100 px-4") %>">
-    <% cart_items.each do |cart_item| %>
-      <%= render "carts/cart_item", cart_item: cart_item %>
-    <% end %>
+  <%
+    subtotal = cart_items.sum { |item| item.product.price_cents * item.quantity }
+    shipping = Order.shipping_cents_for(subtotal)
+    total = subtotal + shipping
+    to_free_shipping = Order::FREE_SHIPPING_THRESHOLD_CENTS - subtotal
+    units = cart_items.sum(&:quantity)
+  %>
+  <div class="grid gap-8 pb-24 lg:grid-cols-[1fr_380px] lg:items-start lg:gap-10 lg:pb-0">
+    <div class="min-w-0">
+      <div class="mb-4 rounded-2xl border border-line bg-surface p-4 sm:p-5">
+        <p class="flex items-center gap-2 text-sm font-medium">
+          <%= icon(:truck, css_class: "size-5 text-brand-strong") %>
+          <% if to_free_shipping.positive? %>
+            Add <%= format_price_cents(to_free_shipping) %> more for free shipping
+          <% else %>
+            You&rsquo;ve unlocked free shipping
+          <% end %>
+        </p>
+        <div class="mt-3 h-1.5 overflow-hidden rounded-full bg-divider" role="progressbar" aria-label="Progress to free shipping"
+             aria-valuemin="0" aria-valuemax="100" aria-valuenow="<%= [ subtotal * 100 / Order::FREE_SHIPPING_THRESHOLD_CENTS, 100 ].min %>">
+          <div class="h-full rounded-full bg-brand transition-[width] duration-300" style="width: <%= [ subtotal * 100 / Order::FREE_SHIPPING_THRESHOLD_CENTS, 100 ].min %>%"></div>
+        </div>
+      </div>
+
+      <ul class="divide-y divide-divider rounded-2xl border border-line bg-surface px-4 sm:px-6" aria-label="Items in your cart">
+        <% cart_items.each do |cart_item| %>
+          <%= render "carts/cart_item", cart_item: cart_item %>
+        <% end %>
+      </ul>
+
+      <%= link_to products_path, class: "link mt-5 inline-flex min-h-11 items-center gap-1.5 text-[15px]" do %>
+        <%= icon(:arrow_left, css_class: "size-4") %> Continue shopping
+      <% end %>
+    </div>
+
+    <aside class="min-w-0 rounded-2xl border border-line bg-surface p-5 sm:p-6 lg:sticky lg:top-40" aria-labelledby="summary_heading">
+      <h2 id="summary_heading" class="text-lg font-semibold">Order summary</h2>
+      <dl class="mt-5 space-y-3 text-[15px]">
+        <div class="flex justify-between gap-4">
+          <dt class="text-muted">Subtotal (<%= pluralize(units, "item") %>)</dt>
+          <dd class="font-medium tabular-nums"><%= format_price_cents(subtotal) %></dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt class="text-muted">Shipping</dt>
+          <dd class="font-medium tabular-nums <%= 'text-success' if shipping.zero? %>"><%= shipping.zero? ? "Free" : format_price_cents(shipping) %></dd>
+        </div>
+        <div class="flex justify-between gap-4 border-t border-divider pt-4">
+          <dt class="font-semibold">Total</dt>
+          <dd class="price text-xl"><%= format_price_cents(total) %></dd>
+        </div>
+      </dl>
+      <%= link_to new_checkout_path, class: "btn-primary btn-lg mt-6 w-full" do %>
+        Proceed to Checkout <%= icon(:arrow_right, css_class: "size-4") %>
+      <% end %>
+      <ul class="mt-5 space-y-2 text-sm text-muted">
+        <li class="flex items-center gap-2"><%= icon(:truck, css_class: "size-4") %>Free shipping on orders over <%= format_price_cents(Order::FREE_SHIPPING_THRESHOLD_CENTS, trim: true) %></li>
+        <li class="flex items-center gap-2"><%= icon(:lock, css_class: "size-4") %>Secure checkout</li>
+        <li class="flex items-center gap-2"><%= icon(:returns, css_class: "size-4") %>30-day easy returns</li>
+      </ul>
+    </aside>
   </div>
 
-  <div class="<%= card_classes("mt-6 p-4 flex items-center justify-between gap-4 flex-wrap") %>">
-    <span class="text-lg font-semibold text-gray-900">Total</span>
-    <span class="text-2xl font-bold text-gray-900"><%= format_price_cents(cart.total_cents) %></span>
-    <%= link_to "Proceed to Checkout", new_checkout_path,
-          class: "w-full sm:w-auto text-center bg-amber-400 hover:bg-amber-300 text-slate-900 font-semibold px-6 py-2 rounded" %>
+  <%# Mobile: total and checkout always in reach. %>
+  <div class="sticky-action-bar fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur lg:hidden">
+    <div class="flex items-center gap-4">
+      <div class="flex-1">
+        <p class="text-xs text-muted">Total</p>
+        <p class="price text-lg"><%= format_price_cents(total) %></p>
+      </div>
+      <%= link_to "Checkout", new_checkout_path, class: "btn-primary btn-lg" %>
+    </div>
   </div>
 <% else %>
-  <div class="<%= card_classes("p-10 text-center text-gray-600") %>">
-    <p class="mb-3">Your cart is empty.</p>
-    <%= link_to "Browse products", products_path, class: "text-blue-600 hover:underline" %>
-  </div>
+  <%= render "shared/empty_state", icon: :cart,
+        title: "Your cart is empty",
+        body: "Browse today's deals or pick up where you left off. Anything you add will wait here.",
+        action_label: "Start shopping",
+        action_path: products_path %>
 <% end %>

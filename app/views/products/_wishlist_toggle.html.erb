@@ -1,0 +1,14 @@
+<%# locals: (product:, wishlist_item_id:, bordered: false) %>
+<%# Class, not id, so the toggle stream updates every copy of this product's heart. %>
+<div class="<%= dom_id(product, :wishlist) %>">
+  <% saved = wishlist_item_id.present? %>
+  <%= button_to (saved ? wishlist_item_path(wishlist_item_id) : wishlist_items_path),
+        method: (saved ? :delete : :post),
+        params: (saved ? {} : { product_id: product.id }),
+        form: { data: { turbo_frame: "_top" } },
+        "aria-label": (saved ? "Remove #{product.name} from wishlist" : "Save #{product.name} to wishlist"),
+        "aria-pressed": saved.to_s,
+        class: "icon-btn bg-surface/90 backdrop-blur-sm hover:bg-surface #{'border border-line' if bordered} #{saved ? 'text-brand' : 'text-ink'}" do %>
+    <%= icon(:heart, css_class: "size-5 transition-transform duration-150 active:scale-90 #{'fill-brand' if saved}") %>
+  <% end %>
+</div>

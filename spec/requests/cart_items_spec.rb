@@ -39,8 +39,12 @@ RSpec.describe "Cart items", type: :request do
           expect(turbo_stream_targets).to include("cart_count", "cart_items")
         end
 
-        it "replaces the product's quick-add control and adds a toast" do
-          expect(turbo_stream_targets).to include(ActionView::RecordIdentifier.dom_id(product, :quick_add), "toasts")
+        it "adds a toast" do
+          expect(turbo_stream_targets).to include("toasts")
+        end
+
+        it "replaces every copy of the product's quick-add control" do
+          expect(turbo_stream_all_targets).to include(".#{ActionView::RecordIdentifier.dom_id(product, :quick_add)}")
         end
 
         it "stores the requested quantity" do
@@ -193,6 +197,54 @@ RSpec.describe "Cart items", type: :request do
 
         it { expect(response).to have_http_status(:not_found) }
       end
+    end
+  end
+
+  describe "POST /cart_items with buy_now" do
+    before { sign_in_as(user) }
+
+    def buy_now
+      post cart_items_path, params: { product_id: product.id, quantity: 1, buy_now: "1" }, headers: turbo_stream_headers
+    end
+
+    it "adds the product to the cart" do
+      expect { buy_now }.to change { user.cart.cart_items.count }.by(1)
+    end
+
+    context "after the request" do
+      before { buy_now }
+
+      it { expect(response).to redirect_to(new_checkout_path) }
+    end
+  end
+
+  describe "POST /cart_items/:id/save_for_later" do
+    let!(:line) { create(:cart_item, cart: user.cart, product: product) }
+
+    before { sign_in_as(user) }
+
+    def save_for_later(target)
+      post save_for_later_cart_item_path(target), headers: turbo_stream_headers
+    end
+
+    it "moves the line to the wishlist" do
+      expect { save_for_later(line) }.to change(CartItem, :count).by(-1).and change { user.wishlist_items.count }.by(1)
+    end
+
+    context "after saving" do
+      before { save_for_later(line) }
+
+      it "updates the cart and the saved list" do
+        expect(turbo_stream_targets).to include("cart_count", "cart_items", "saved_items")
+      end
+    end
+
+    context "for another user's cart item" do
+      let!(:other_line) { create(:cart_item, cart: create(:cart)) }
+
+      before { save_for_later(other_line) }
+
+      it { expect(response).to have_http_status(:not_found) }
     end
   end
 end

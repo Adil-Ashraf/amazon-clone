@@ -1,153 +1,249 @@
-# AmazonClone
+# Aisle Market
 
-A scoped rebuild of Amazon's core purchase flow — browse, search, cart, checkout, and order history — as a fully working, deployed product.
+**Better products. Better everyday.**
 
-## Live Link
+Aisle Market is an original e-commerce product built as a full-stack Ruby on
+Rails 8.1 application. Shoppers can browse a curated catalog, compare real
+prices and verified-buyer reviews, save items, and check out through a
+transactional order flow backed by PostgreSQL.
 
-**Live app:** https://amazon-clone-production-4093.up.railway.app/
+- **Live app:** https://amazon-clone-production-4093.up.railway.app/
+- **Repository:** https://github.com/Adil-Ashraf/amazon-clone
+- **Design system:** [`docs/DESIGN.md`](docs/DESIGN.md)
 
-**Repository:** https://github.com/Adil-Ashraf/amazon-clone
+## An original design, not a clone
 
-## What This Is
+Amazon was the functional reference for what a store needs (catalog, cart,
+checkout, orders). Everything the shopper sees is our own: the brand, layout,
+type, colour, components and interaction design.
 
-This was built for a take-home assignment with a 24-hour window and one instruction: rebuild a live product, not a mockup. Amazon's actual surface area — marketplace sellers, reviews, recommendations, a dozen fulfillment options — is not a 24-hour project; trying to touch all of it would have produced a shallow demo of everything and a working version of nothing.
+- **Visual identity.** Warm ivory surfaces, deep ink typography and one accent,
+  Aisle Orange. The rule is roughly 70% neutral, 20% ink, 10% orange, and
+  orange only marks the primary action, the active state or a sale.
+- **Calm density.** Cards show just enough to decide: image, category, name,
+  rating, price and one action. There are no badge walls or sponsored slots.
+- **Every signal is real.** Ratings, "was" prices, deals, stock, shipping,
+  order status and recommendations all come from the database. If the backend
+  doesn't know it, the UI doesn't show it.
 
-Instead, this rebuilds the one loop that makes Amazon *Amazon*: a signed-in user finds a product, adds it to a cart, checks out, and can see what they bought. Everything in scope is real — real Postgres full-text search, a real cart that persists and updates live, a real checkout transaction with row-level locking against overselling, real order history with price snapshotting. Nothing here is a stub that just looks right in a screenshot.
+[`docs/DESIGN.md`](docs/DESIGN.md) documents the tokens, type scale,
+components and page layouts, and where each UI signal comes from (§6).
 
-## Features Built
+## Technology stack
 
-**Auth**
-- Sign up, log in, log out — session-based, backed by `has_secure_password`
-- Every cart and order lookup is scoped to `current_user`; there is no route that leaks another user's data by guessing an ID
+| Layer | Choice |
+| --- | --- |
+| Language / framework | Ruby 3.4.10, Rails 8.1 (server-rendered ERB) |
+| Database | PostgreSQL, full-text search via `pg_search` |
+| Frontend | Hotwire (Turbo Frames and Streams, Stimulus via importmap), no Node build |
+| Styling | Tailwind CSS v4 (`tailwindcss-rails`), design tokens in `@theme` |
+| Assets | Propshaft |
+| Auth / authorization | `has_secure_password` (bcrypt), Pundit |
+| Pagination | Pagy |
+| Tests | RSpec, FactoryBot, Shoulda Matchers, Capybara + Selenium |
+| Quality | RuboCop (rails-omakase), Brakeman |
+| Deployment | Docker image on Railway |
 
-**Product Catalog & Search**
-- Product grid with category filtering (8 categories, 110 seeded products)
-- Full-text search via Postgres (`pg_search`, prefix-matching `tsearch` against name + description) — not a `LIKE '%query%'` substring match
-- 24-item pagination (`pagy`) that preserves the active category/search filter across pages, and redirects to the last valid page if a stale `?page=` param points past the end of the result set
-- Product detail page with description, price, live stock badge, and a verified photo (see below)
-- Every product shows one photo that was checked by eye to show that kind of product (`db/seeds/product_images.yml`), or an honest designed tile (category tint + icon) when no photo could be verified. The photo is layered over the tile in the same fixed-size box, so a failed load falls back to the tile with zero layout shift
+## Main user journey
 
-**Cart**
-- Add, remove, update quantity — all validated against live stock
-- Cart persists per logged-in user (one cart row per user, not a session/cookie cart)
-- Cart count and totals update live via Turbo Streams — no full-page reload on any cart action
-- Adding the same product twice (double-click, two open tabs) merges into one line item instead of erroring or duplicating; the underlying unique-constraint race is handled explicitly (see Architecture)
+1. **Discover.** Start from the home page (today's deals, categories, popular
+   and recommended products), search, or browse a filtered catalog.
+2. **Decide.** Open a product page with price and savings, live stock,
+   specifications and verified-purchase reviews.
+3. **Save or add.** Heart it into the wishlist, add it to the cart, or use
+   **Buy Now** to go straight to checkout.
+4. **Check out.** Enter shipping on one page (prefilled from the last order),
+   review items and totals, and place the order.
+5. **Track.** A confirmation screen leads to the order's status timeline.
+   Order history lists every past order, with filters.
 
-**Checkout**
-- Shipping address form
-- Mock payment step (no real processor — this is explicitly out of scope, see below)
-- Order created from the cart's current contents on successful checkout
-- Stock is decremented inside a locked transaction, so two concurrent checkouts for the last unit of a product can't both succeed
+## Features
 
-**Order History**
-- List of a user's past orders with date, status, and total
-- Order detail page showing items, quantities, and the price actually paid — not today's live price (see price snapshotting below)
+**Account**
+- Sign up, sign in, sign out; an inline error on failed sign-in
+- Account page with order, wishlist and review counts, recent orders and the
+  last shipping address
 
-**UI/UX Polish**
-- Loading, empty, and error states on every page above (empty cart, empty order history, no search results, out-of-stock products)
-- Mobile-responsive throughout
-- **Deliberate UX improvement over stock Amazon:** the category sidebar and product grid live inside a single Turbo Frame, so clicking a category, paging, or searching updates instantly with no full navigation — closer to a SPA than Amazon's own frequently-reloading category pages
+**Catalog**
+- 8 categories and 110 products, with a designed fallback tile when a product
+  has no verified photo
+- Full-text search on name and description (Postgres `tsearch`, prefix match)
+- Filters: category, price range, in stock only, on sale, minimum rating
+- Sorting: featured, price (low→high / high→low), newest, top rated, and best
+  match when searching
+- 24 products per page, grid or list view, removable filter chips, and a
+  filter drawer on mobile
 
-## Deliberately Left Out
+**Product page**
+- Price, compare-at price with savings, stock status, specifications from
+  product fields, and related products from the same category
+- **Reviews from verified purchasers.** Only a user with an order containing
+  the product can review it, once per product. The average and count are stored
+  on the product for sorting and filtering.
 
-Everything below was a conscious cut to keep the 24-hour build honest, not an oversight:
+**Wishlist, cart and checkout**
+- Wishlist toggle on every product card and on the product page, plus a
+  wishlist page
+- Cart with quantity controls, remove, **Save for later** (moves the line to the
+  wishlist), and a free-shipping progress bar
+- **Buy Now** adds the item and goes to checkout
+- **Stock validation** on every add, update and checkout
+- One-page checkout (shipping → payment → review). Payment is a clearly
+  labelled demo step, so no card is taken.
+- **Shipping:** a flat $5.99 under $50, free from $50. The charge is stored on
+  the order.
 
-- **Reviews/ratings** — a real review system needs moderation, verified-purchase logic, and aggregate scoring to not be worse than nothing; a fake star rating would be pure decoration
-- **Recommendations engine** — needs real usage data to be anything but random; a placeholder "related products" rail optimizes for looking busy, not for being useful
-- **Seller/marketplace accounts, multi-vendor inventory** — this alone is a second product (listings, seller dashboards, split fulfillment, marketplace-vs-owned-inventory pricing); bolting it on would have starved the core purchase flow of the time it needed
-- **Real payment processing** — integrating Stripe correctly (webhooks, idempotency, PCI-adjacent handling) is its own multi-day task; a mock payment step exercises the same order-creation path without the false confidence of a "working" payment integration that hasn't been hardened
-- **Wishlist, coupons, gift cards, multi-currency** — all real features, none of them load-bearing for the core loop this project is demonstrating
-- **Admin panel / inventory management UI** — seed data does this job for a reviewer; building an admin CRUD layer would have traded purchase-flow depth for breadth nobody asked for
-- **Returns/refunds flow** — depends on real payment processing existing first
+**Orders**
+- Order history filtered by status (all, processing, shipped, delivered,
+  cancelled)
+- Order details: a status timeline, items at the **price paid** (snapshotted
+  at purchase), shipping address, payment and totals, plus **Buy again**
+- A confirmation panel on the first view of a newly placed order
 
-## Architecture / Tech Decisions
+**Discovery**
+- **Today's featured deals** with a countdown. The set is chosen from on-sale
+  products, seeded by the date, so it really changes at midnight (server time,
+  UTC).
+- **Popular** is ranked by units sold. **Recommended for you** shows top-rated
+  products in the categories the shopper has bought from; guests see top rated
+  overall.
+- **Recently viewed** products are kept in the session.
+- **Newsletter signup**, stored in the database
 
-- **Service objects for business logic** — `Carts::CartService` and `Orders::CheckoutService` hold the actual rules (stock validation, quantity merging, order creation); controllers stay thin and just orchestrate. `CheckoutService#call` is the one place a cart turns into an order, wrapped in a single transaction.
-- **Pundit for authorization** — every cart/order action is scoped through `current_user.cart` / `current_user.orders` before any policy check even runs, so there's no route where swapping an ID in the URL reaches another user's record.
-- **Money as integer cents, always** — every price field is `_cents`, never a float. `format_price_cents` is the only place a cent value becomes a display string.
-- **Price snapshotting on orders** — `OrderItem#price_cents` is copied from the product at the moment of purchase, not read live from `product.price_cents`. A price change next week can't rewrite what someone paid last week.
-- **Row-locking on checkout** — `CheckoutService` locks the product rows involved (`product.lock!`, in stable `product_id` order to avoid cross-checkout deadlocks) inside the checkout transaction, re-validates stock under the lock, then decrements it. Two concurrent checkouts for the same last-unit product can't both win.
-- **The same race pattern, applied to cart adds** — `CartService#add_item` retries on `ActiveRecord::RecordNotUnique` instead of letting a double-click or two-tab race surface as a 500; the retry re-reads the row the winning request just committed and merges into it.
-- **Turbo Streams for live cart updates** — cart create/update/destroy respond with Turbo Stream partials that patch the cart badge and line items in place, so cart state feels instant without hand-rolled JS or a JSON API layer.
-- **Hand-rolled auth via `has_secure_password`, not Devise** — the entire auth surface here is sign up / log in / log out against one `User` model. Devise's value is in the features this project doesn't need (password reset flows, confirmable, lockable, omniauth); pulling it in for three actions would mean carrying its configuration surface and generated views for no real leverage. `has_secure_password` plus a `sessions_controller` is the whole feature, visibly.
+**Experience**
+- **Responsive** layouts for mobile, tablet and desktop, including a mobile nav
+  drawer and sticky action bars
+- **Accessibility:**
+  - labelled fields, visible focus rings and a skip link
+  - 44px touch targets and AA text contrast
+  - semantic headings, and `aria-live` regions for cart and toast updates
+  - a reduced-motion setting is respected
 
-## Tech Stack
+## Backend architecture
 
-- **Ruby** 3.4.10 · **Rails** 8.1
-- **PostgreSQL** — primary datastore, plus full-text search (`pg_search`) and row-locking for checkout
-- **Tailwind CSS** (`tailwindcss-rails`) — utility-first styling, no component library
-- **Hotwire** — Turbo (Frames + Streams) and Stimulus for interactivity without a separate frontend build
-- **Key gems:** `pg_search` (full-text search), `pundit` (authorization), `pagy` (pagination), `bcrypt` (via `has_secure_password`)
-- **Deployment:** Railway, via the repo's `Dockerfile`
+- **Thin controllers, business logic in services.**
+  - `Carts::CartService`: add, update, remove and save for later, with stock
+    checks and quantity merging.
+  - `Orders::CheckoutService`: turns a cart into an order in a single
+    transaction.
+  - `Reviews::CreateService`: enforces the buyer rule and updates the
+    product's rating aggregates.
+- **Concurrency-safe checkout.** Product rows are locked in stable id order,
+  stock is re-validated under the lock and then decremented, so two checkouts
+  can't both buy the last unit. Concurrent cart adds retry on the unique index
+  instead of raising an error.
+- **Money is integer cents** and is displayed only through
+  `format_price_cents`. `OrderItem#price_cents` and `Order#shipping_cents` are
+  purchase-time snapshots.
+- **Hotwire over an API layer.** Cart, wishlist and newsletter actions answer
+  with Turbo Streams that update every affected element in place. The core
+  actions (add to cart, wishlist, checkout, search, sort) are ordinary HTML
+  forms and links that work without JavaScript.
 
-## Running Locally
+## Database-backed functionality
 
-### With Docker (recommended)
+| Feature | Storage |
+| --- | --- |
+| Products, categories, stock | `products`, `categories` |
+| Sale prices | `products.compare_at_price_cents` (DB check: must exceed `price_cents`) |
+| Reviews and ratings | `reviews` (unique per user and product, rating 1–5 check), plus `products.reviews_count` / `rating_average` |
+| Wishlist, save for later | `wishlist_items` (unique per user and product) |
+| Cart | `carts`, `cart_items` (unique per cart and product) |
+| Orders | `orders` (status, shipping snapshot), `order_items` (price snapshot) |
+| Newsletter | `newsletter_subscriptions` (unique email) |
 
-Needs only Docker — no local Ruby or Postgres.
+**Seed data** (`db/seeds.rb`, `db/seeds/storefront.rb`; safe to re-run):
+- **Catalog:** 110 products in 8 categories, with verified Unsplash photos for
+  98 of them. 23 products carry a compare-at price.
+- **Reviews:** these come from **12 seeded buyer accounts**. Each buyer has a
+  delivered order containing every product they review, so the seeded data
+  follows the same buyer rule the app enforces. Their passwords are random, so
+  they can't be signed into.
+- **Demo account:** orders in several statuses and a small wishlist. Order
+  statuses beyond "Processing" exist through seed data only; there is no admin
+  tool that moves orders forward.
+
+## Security and authorization
+
+- **Scoped lookups.** Every user-owned record is loaded through `current_user`
+  (`current_user.orders.find`, `current_user.cart`, and so on), so another
+  user's id returns 404. Pundit policies then authorize the cart, orders and
+  wishlist items.
+- **Sign-in required** for the cart, checkout, orders, wishlist, account and
+  reviews. Guests are redirected to sign in.
+- **Input handling.** Strong parameters on every form. Sort keys, filter values
+  and info-page names are checked against allow-lists and never interpolated
+  into SQL or render paths.
+- **Framework protection.** Passwords are hashed with bcrypt, and Rails CSRF
+  protection is on. Brakeman reports no warnings.
+
+## Testing
+
+291 examples: 263 model, service, helper and request specs, plus 28 browser
+(system) specs.
+
+- `spec/models`, `spec/services`: validations, stock rules, price and shipping
+  snapshots, review aggregates, save for later
+- `spec/requests`: every controller over HTML and Turbo Stream, including
+  guest redirects, other-user 404s and `turbo-stream` targets
+- `spec/system`: guest browsing, the purchase flow, the account menu, the
+  wishlist and Buy Now, and a **mobile checkout layout** check at true
+  390/375/360px viewports
 
 ```bash
-git clone <repo-url>
-cd amazon-clone
-docker compose up         # builds the image, prepares the DB, starts Rails + Tailwind
-bin/docker-dev seed       # in a second terminal: 8 categories, 110 products, a demo user
+bin/docker-dev test       # everything except system specs
+bin/docker-dev system     # system specs in headless Chrome (selenium service)
+bin/docker-dev lint       # RuboCop
+bin/docker-dev security   # Brakeman
 ```
 
-Visit `http://localhost:3000` and log in with `demo@example.com` / `password123`.
+## Local setup
 
-Other commands: `bin/docker-dev test | system | lint | security | console | bash | down`
-(see [Testing](#testing)). Postgres is exposed on host port 5433 so it won't clash with a local install.
-
-### Without Docker
+**With Docker (recommended).** Only Docker is needed.
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/Adil-Ashraf/amazon-clone.git
 cd amazon-clone
+docker compose up          # builds the image, prepares the DB, starts Rails + Tailwind
+bin/docker-dev seed        # in a second terminal: catalog, reviews, demo account
+```
+
+Open http://localhost:3000. Postgres is exposed on host port 5433.
+
+**Without Docker** (Ruby 3.4.10 and PostgreSQL):
+
+```bash
 bundle install
-bin/rails db:prepare   # creates the DB and loads the schema
-bin/rails db:seed      # 8 categories, 110 products, a demo user
-bin/rails server
+bin/rails db:prepare
+bin/rails db:seed
+bin/dev
 ```
 
-Visit `http://localhost:3000` and log in with the seeded demo account — no need to sign up to explore:
+## Demo account
 
 ```
 email:    demo@example.com
 password: password123
 ```
 
-## Testing
+The sign-in page also shows these credentials.
 
-The suite is **RSpec** with **FactoryBot**, **Shoulda Matchers** and **Capybara**, all in `spec/`:
+## Live deployment
 
-- `spec/models` — validations and associations (Shoulda Matchers) plus model methods
-- `spec/services` — `Carts::CartService` and `Orders::CheckoutService` (stock checks, quantity merging, price snapshotting, rollback on failure)
-- `spec/requests` — every controller flow over HTML and Turbo Stream, including authorization (another user's cart item or order is a 404)
-- `spec/system` — the guest browsing and purchase flows in headless Chrome
-- `spec/factories` — minimal valid factories with `low_stock` / `sold_out` / `with_cart` traits
+The app runs on Railway from the repository's `Dockerfile`. On boot the
+container runs `bin/rails db:prepare`, which applies pending migrations.
+Seeding is a one-off step: after deploying new seed data, run
+`bin/rails db:seed` once against production. It is safe to repeat.
 
-```bash
-bin/docker-dev test       # everything except system specs
-bin/docker-dev system     # system specs, against the selenium/standalone-chromium service
-bin/docker-dev lint       # RuboCop
-bin/docker-dev security   # Brakeman
-```
+**Live app:** https://amazon-clone-production-4093.up.railway.app/
 
-Without Docker: `bundle exec rspec --exclude-pattern "spec/system/**/*_spec.rb"` and `bundle exec rspec spec/system`.
-Failed system specs save screenshots to `tmp/screenshots`.
+## Not included
 
-## Agent Usage
-
-This project was built with [Claude Code](https://claude.com/claude-code) assistance. The full prompt/response history for every session is committed in [`.agent-logs/`](.agent-logs/), per the assignment's capture requirement — including sessions with unresolved dead ends and abandoned approaches, not just the ones that shipped. That log is the honest record of how this got built, not a cleaned-up highlight reel.
-
-## What I'd Build Next
-
-With more time, in roughly this order:
-
-1. **Real test coverage** — the business-critical paths (stock locking, price snapshotting, checkout concurrency, authorization scoping) are currently verified by hand rather than by a suite that runs on every change. This is the single highest-leverage next step.
-2. **Real payment integration** — Stripe in test mode, done properly: webhooks for async confirmation, idempotency keys on the charge, and a payment-failed state that doesn't just fall through to "order placed."
-3. **Reviews and ratings** — with real moderation and verified-purchase gating, not a decorative star widget.
-4. **Seller accounts** — the actual second product hinted at above: listings, seller-owned inventory, and a dashboard, kept clearly separate from the buyer-facing purchase flow this submission focuses on.
+- **Real payments.** Checkout uses a labelled demo payment, and no card
+  details are collected.
+- **Also not built:** tax calculation, product variants, password reset,
+  account settings, seller accounts and an admin panel. See
+  [`docs/DESIGN.md`](docs/DESIGN.md) §7 for the reasoning.
 
 ## Credits
 

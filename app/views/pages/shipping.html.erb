@@ -1,0 +1,6 @@
+<%= render layout: "shell", locals: { title: "Shipping", intro: "Simple, flat shipping with no surprises at checkout." } do %>
+  <section><h2>Rates</h2>
+    <p>Orders over <%= format_price_cents(Order::FREE_SHIPPING_THRESHOLD_CENTS, trim: true) %> ship free. Every other order pays a flat <%= format_price_cents(Order::SHIPPING_FEE_CENTS) %>, shown in your cart before you check out.</p></section>
+  <section><h2>Tracking</h2>
+    <p>Every order has a live timeline under <%= link_to "Your Orders", orders_path, class: "link" %>: confirmed, processing, shipped, out for delivery and delivered.</p></section>
+<% end %>

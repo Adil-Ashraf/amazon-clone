@@ -1,0 +1,32 @@
+<%# locals: (showcase:) %>
+<%# Sign in and sign up: a brand panel beside the form on large screens. %>
+<div class="page py-8 lg:py-12">
+  <div class="grid overflow-hidden rounded-hero border border-line bg-surface lg:min-h-[640px] lg:grid-cols-2">
+    <div class="relative hidden flex-col justify-between overflow-hidden bg-wash-sand p-12 lg:flex">
+      <div>
+        <p class="eyebrow">Aisle Market</p>
+        <p class="mt-4 max-w-sm text-[32px] leading-tight font-semibold tracking-tight">Better products. Better everyday.</p>
+        <ul class="mt-8 space-y-3 text-[15px] text-muted-strong">
+          <li class="flex items-center gap-3"><%= icon(:truck, css_class: "size-5 text-ink") %>Free shipping over <%= format_price_cents(Order::FREE_SHIPPING_THRESHOLD_CENTS, trim: true) %></li>
+          <li class="flex items-center gap-3"><%= icon(:returns, css_class: "size-5 text-ink") %>30-day easy returns</li>
+          <li class="flex items-center gap-3"><%= icon(:star, css_class: "size-5 text-ink") %>Reviews only from verified buyers</li>
+        </ul>
+      </div>
+      <% if showcase %>
+        <div class="relative mt-10 aspect-[4/3] overflow-hidden rounded-2xl bg-surface shadow-float">
+          <%= product_image_tag showcase, alt: "", sizes: :detail %>
+          <div class="absolute inset-x-4 bottom-4 rounded-xl bg-surface/95 px-4 py-3 backdrop-blur">
+            <p class="truncate text-sm font-semibold"><%= showcase.name %></p>
+            <p class="text-xs text-muted"><%= showcase.category.name %> &middot; <%= format_price_cents(showcase.price_cents) %></p>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="flex items-center justify-center px-5 py-10 sm:px-12 lg:px-16">
+      <div class="w-full max-w-md">
+        <%= yield %>
+      </div>
+    </div>
+  </div>
+</div>

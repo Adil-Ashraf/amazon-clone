@@ -16,11 +16,11 @@ RSpec.describe "Purchase flow", type: :system do
   def check_out
     visit cart_path
     find("a[href='#{new_checkout_path}']").click
-    fill_in "Full Name", with: "Test User"
-    fill_in "Address Line 1", with: "1 Spec Street"
+    fill_in "Full name", with: "Test User"
+    fill_in "Address", with: "1 Spec Street"
     fill_in "City", with: "Specville"
     fill_in "State", with: "CA"
-    fill_in "ZIP", with: "90210"
+    fill_in "ZIP code", with: "90210"
     click_button "Place Order"
     assert_current_path(%r{\A/orders/\d+\z}) # wait for the redirect
   end

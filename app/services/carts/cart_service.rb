@@ -46,5 +46,15 @@ module Carts
       cart_item.destroy!
       cart_item
     end
+
+    # Moves the line to the owner's wishlist, so it can be bought later
+    # without keeping it in the cart total.
+    def save_for_later(cart_item:)
+      ActiveRecord::Base.transaction do
+        @cart.user.wishlist_items.find_or_create_by!(product: cart_item.product)
+        cart_item.destroy!
+      end
+      cart_item
+    end
   end
 end

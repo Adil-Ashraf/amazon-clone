@@ -1,0 +1,12 @@
+<%= render layout: "shell", locals: { title: "Help & FAQs", intro: "Answers to the questions people ask most about shopping on Aisle Market." } do %>
+  <section><h2 id="orders">How do I track my order?</h2>
+    <p>Go to <%= link_to "Your Orders", orders_path, class: "link" %> and open any order. The timeline shows every step it has reached, from confirmed to delivered.</p></section>
+  <section><h2 id="shipping">How much is shipping?</h2>
+    <p>Shipping is free on orders over <%= format_price_cents(Order::FREE_SHIPPING_THRESHOLD_CENTS, trim: true) %>. Smaller orders pay a flat <%= format_price_cents(Order::SHIPPING_FEE_CENTS) %>. Your cart shows how close you are.</p></section>
+  <section><h2 id="reviews">Who can write reviews?</h2>
+    <p>Only customers who bought a product can review it, once per product. Every rating you see comes from a real order.</p></section>
+  <section><h2 id="deals">How do deals work?</h2>
+    <p>A sale price is shown next to the regular price it&rsquo;s marked down from. Today&rsquo;s featured deals on the home page change every day at midnight.</p></section>
+  <section><h2 id="account">I forgot my password</h2>
+    <p>Password resets aren&rsquo;t available in this demo. You can <%= link_to "create a new account", new_registration_path, class: "link" %>, or sign in with the demo account: demo@example.com / password123.</p></section>
+<% end %>

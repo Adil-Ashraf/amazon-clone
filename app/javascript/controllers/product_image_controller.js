@@ -1,9 +1,9 @@
 import { Controller } from "@hotwired/stimulus"
 
-// A product photo layered over its designed tile. If the photo can't load,
-// remove it so the tile shows through, and expose the tile to assistive tech
-// (it is aria-hidden while the photo covers it). connect() also catches a
-// photo that failed before this controller was attached.
+// A product photo over a neutral well. The designed tile underneath is
+// hidden while the photo loads; only if the photo can't load is it removed
+// and the tile revealed (and exposed to assistive tech). connect() also
+// catches a photo that failed before this controller was attached.
 export default class extends Controller {
   static targets = ["tile", "photo"]
 
@@ -15,6 +15,7 @@ export default class extends Controller {
 
   fallback() {
     if (this.hasPhotoTarget) this.photoTarget.remove()
+    this.tileTarget.hidden = false
     this.tileTarget.removeAttribute("aria-hidden")
   }
 }

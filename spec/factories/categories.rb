@@ -3,7 +3,7 @@ FactoryBot.define do
     sequence(:name) { |n| "Category #{n}" }
     sequence(:slug) { |n| "category-#{n}" }
 
-    # Real slugs, so Category::ICON_KEYS / COLOR_HEXES resolve.
+    # Real slugs, so Category::ICON_KEYS resolves.
     trait :electronics do
       name { "Electronics" }
       slug { "electronics" }

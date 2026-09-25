@@ -94,4 +94,28 @@ RSpec.describe Carts::CartService do
       end
     end
   end
+
+  describe "#save_for_later" do
+    let!(:line) { create(:cart_item, cart: cart, product: product) }
+
+    def save_for_later
+      service.save_for_later(cart_item: line)
+    end
+
+    it "removes the line from the cart" do
+      expect { save_for_later }.to change { cart.cart_items.count }.by(-1)
+    end
+
+    it "adds the product to the owner's wishlist" do
+      expect { save_for_later }.to change { cart.user.wishlist_items.where(product: product).count }.by(1)
+    end
+
+    context "when the product is already on the wishlist" do
+      before { create(:wishlist_item, user: cart.user, product: product) }
+
+      it "keeps a single wishlist entry" do
+        expect { save_for_later }.not_to change(WishlistItem, :count)
+      end
+    end
+  end
 end

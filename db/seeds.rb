@@ -198,3 +198,5 @@ sample_order_lines.each do |line|
 end
 
 puts "Seeded demo user (demo@example.com / password123) with an empty cart and #{demo_user.orders.count} order(s)."
+
+load Rails.root.join("db/seeds/storefront.rb")

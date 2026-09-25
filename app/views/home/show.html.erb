@@ -1,0 +1,209 @@
+<%
+  card_state = { bag_quantities: @bag_quantities, wishlist_ids: @wishlist_ids }
+  # Promotional banners: copy lives here; each links to a real category
+  # listing, and "up to N% off" is the largest markdown in that category.
+  promos = [
+    { slug: "electronics", eyebrow: "Latest tech", title: "Upgrade your everyday tech",
+      body: "Headphones, cameras and smart home gear chosen for how well they work.", wash: "bg-wash-sky" },
+    { slug: "home-kitchen", eyebrow: "Home essentials", title: "Make home feel finished",
+      body: "Cookware, coffee and small comforts for the rooms you use most.", wash: "bg-wash-sage" },
+    { slug: "clothing", eyebrow: "Fashion sale", title: "Wardrobe staples, marked down",
+      body: "Layers and basics that last more than a season.", wash: "bg-wash-peach", sale: true }
+  ].filter_map { |promo| (category = @promo_categories[promo[:slug]]) && promo.merge(category: category) }
+  seconds_left = [ (@deals_end_at - Time.current).to_i, 0 ].max
+%>
+
+<%# Hero %>
+<section class="page pt-4 sm:pt-6 lg:pt-8" aria-labelledby="hero_heading">
+  <div class="grid overflow-hidden rounded-hero bg-wash-sand lg:min-h-[480px] lg:grid-cols-[1.05fr_1fr]">
+    <div class="flex flex-col justify-center px-6 py-10 sm:px-10 sm:py-14 lg:py-16 lg:pl-14 lg:pr-8">
+      <p class="eyebrow">Premium products for a better everyday</p>
+      <h1 id="hero_heading" class="h1 mt-4 max-w-xl text-balance">Everything you need.<br class="hidden sm:block"> Beautifully curated.</h1>
+      <p class="mt-5 max-w-md text-base leading-relaxed text-muted-strong sm:text-[17px]">
+        Discover quality products for your home, work and lifestyle &mdash; all in one place.
+      </p>
+      <div class="mt-8 flex flex-col gap-3 min-[400px]:flex-row">
+        <%= link_to products_path, class: "btn-primary btn-lg" do %>
+          Shop Now <%= icon(:arrow_right, css_class: "size-4") %>
+        <% end %>
+        <%= link_to "Explore Deals", products_path(deals: 1), class: "btn-secondary btn-lg bg-transparent" %>
+      </div>
+      <ul class="mt-10 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-strong">
+        <li class="flex items-center gap-2"><%= icon(:truck, css_class: "size-[18px] text-ink") %>Free shipping over <%= format_price_cents(Order::FREE_SHIPPING_THRESHOLD_CENTS, trim: true) %></li>
+        <li class="flex items-center gap-2"><%= icon(:returns, css_class: "size-[18px] text-ink") %>30-day returns</li>
+      </ul>
+    </div>
+
+    <% if @hero_products.any? %>
+      <% lead, *rest = @hero_products %>
+      <div class="relative grid min-h-[320px] grid-cols-2 grid-rows-2 gap-3 p-3 sm:min-h-[420px] sm:gap-4 sm:p-4 lg:p-5 lg:pl-0">
+        <%= link_to product_path(lead), class: "group relative col-span-2 row-span-2 overflow-hidden rounded-2xl bg-surface #{'sm:col-span-1' if rest.any?} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" do %>
+          <%= product_image_tag lead, loading: "eager", sizes: :detail, css_class: "motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-[1.03]" %>
+          <div class="absolute inset-x-3 bottom-3 rounded-xl bg-surface/95 p-3 shadow-float backdrop-blur sm:inset-x-4 sm:bottom-4">
+            <p class="text-xs font-medium uppercase tracking-wider text-muted">Top rated</p>
+            <p class="mt-0.5 truncate text-sm font-semibold text-ink"><%= lead.name %></p>
+            <div class="mt-1 flex items-center justify-between gap-2">
+              <span class="price text-[15px]"><%= format_price_cents(lead.price_cents) %></span>
+              <% if lead.reviewed? %>
+                <span class="flex items-center gap-1 text-xs text-muted">
+                  <%= icon(:star, css_class: "size-3.5 fill-brand text-brand") %>
+                  <span class="font-semibold text-ink"><%= format("%.1f", lead.rating_average) %></span>
+                  (<%= lead.reviews_count %>)
+                </span>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+        <% rest.each do |product| %>
+          <%= link_to product_path(product), class: "group relative hidden overflow-hidden rounded-2xl bg-surface sm:block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand", "aria-label": product.name do %>
+            <%= product_image_tag product, loading: "eager", css_class: "motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-[1.04]" %>
+          <% end %>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</section>
+
+<%# Categories %>
+<section id="categories" class="page scroll-mt-40 pt-14 lg:pt-20" aria-labelledby="categories_heading">
+  <%= render "shared/section_heading", id: "categories_heading", title: "Shop by category",
+        link_label: "All products", link_path: products_path %>
+  <ul class="-mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:gap-6 md:mx-0 md:grid md:grid-cols-4 md:overflow-visible md:px-0 lg:grid-cols-8">
+    <% @categories.each do |category| %>
+      <% cover = @category_covers[category.id] %>
+      <li class="w-24 shrink-0 snap-start sm:w-28 md:w-auto">
+        <%= link_to products_path(category: category.slug),
+              class: "group flex flex-col items-center gap-3 rounded-2xl p-2 text-center transition-colors duration-200 hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" do %>
+          <span class="relative block size-20 overflow-hidden rounded-full border border-line bg-surface transition-transform duration-200 motion-safe:group-hover:scale-105 sm:size-24">
+            <% if cover %>
+              <%= product_image_tag cover, alt: "", sizes: :thumb %>
+            <% else %>
+              <span class="flex size-full items-center justify-center bg-stone text-brand-strong"><%= category_icon(category, css_class: "size-8") %></span>
+            <% end %>
+          </span>
+          <span class="text-sm leading-tight font-medium text-ink"><%= category.name %></span>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+</section>
+
+<%# Today's deals %>
+<% if @deals.any? %>
+  <section class="page pt-14 lg:pt-20" aria-labelledby="deals_heading">
+    <div class="rounded-hero bg-brand-soft px-4 py-8 sm:px-8 sm:py-10 lg:px-10 lg:py-12">
+      <div class="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 lg:mb-8">
+        <div>
+          <p class="eyebrow mb-2">Changes every day at midnight</p>
+          <h2 id="deals_heading" class="h2">Today&rsquo;s Featured Deals</h2>
+        </div>
+        <div class="flex flex-wrap items-center gap-x-6 gap-y-3">
+          <div data-controller="countdown" data-countdown-deadline-value="<%= @deals_end_at.iso8601 %>"
+               class="flex items-center gap-3" role="timer" aria-label="Time left on today's deals">
+            <span class="flex items-center gap-1.5 text-sm font-medium text-muted-strong"><%= icon(:clock, css_class: "size-4") %>Ends in</span>
+            <span class="flex items-center gap-1 font-semibold tabular-nums text-ink" aria-hidden="true">
+              <% [ [ :hours, seconds_left / 3600 ], [ :minutes, seconds_left % 3600 / 60 ], [ :seconds, seconds_left % 60 ] ].each_with_index do |(unit, value), index| %>
+                <% if index.positive? %><span class="text-muted-strong">:</span><% end %>
+                <span class="inline-flex h-9 min-w-10 items-center justify-center rounded-lg bg-surface px-1.5 text-[15px]" data-countdown-target="<%= unit %>"><%= value.to_s.rjust(2, "0") %></span>
+              <% end %>
+            </span>
+            <span class="sr-only">Deals change at midnight.</span>
+          </div>
+          <%= link_to products_path(deals: 1), class: "group inline-flex min-h-11 items-center gap-1.5 rounded text-[15px] font-semibold text-ink hover:text-brand-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" do %>
+            View all deals <%= icon(:arrow_right, css_class: "size-4 transition-transform duration-200 group-hover:translate-x-0.5") %>
+          <% end %>
+        </div>
+      </div>
+      <%= render "products/grid", products: @deals, **card_state %>
+    </div>
+  </section>
+<% end %>
+
+<%# Promotional banners %>
+<% if promos.any? %>
+  <section class="page pt-14 lg:pt-20" aria-label="Collections">
+    <div class="grid gap-4 md:grid-cols-3 lg:gap-6">
+      <% promos.each do |promo| %>
+        <% cover = @category_covers[promo[:category].id] %>
+        <% max_discount = @max_discounts[promo[:category].id] %>
+        <%= link_to products_path(category: promo[:slug], deals: (1 if promo[:sale] && max_discount)),
+              class: "group relative flex min-h-[260px] flex-col overflow-hidden rounded-2xl p-6 transition-transform duration-200 motion-safe:hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 lg:p-8 #{promo[:wash]}" do %>
+          <p class="eyebrow text-ink/70"><%= promo[:eyebrow] %></p>
+          <h3 class="h3 mt-3 max-w-[15rem]"><%= promo[:title] %></h3>
+          <p class="mt-2 max-w-[15rem] text-sm leading-relaxed text-muted-strong">
+            <%= promo[:body] %>
+            <% if promo[:sale] && max_discount %> Up to <%= max_discount.to_i %>% off.<% end %>
+          </p>
+          <span class="mt-auto inline-flex items-center gap-1.5 pt-6 text-[15px] font-semibold text-ink">
+            Shop Now <%= icon(:arrow_right, css_class: "size-4 transition-transform duration-200 group-hover:translate-x-1") %>
+          </span>
+          <% if cover %>
+            <span class="absolute -right-6 -bottom-6 hidden size-36 overflow-hidden rounded-full border-4 border-surface/70 sm:block md:hidden lg:block lg:size-40" aria-hidden="true">
+              <%= product_image_tag cover, alt: "", sizes: :thumb %>
+            </span>
+          <% end %>
+        <% end %>
+      <% end %>
+    </div>
+  </section>
+<% end %>
+
+<%# Popular %>
+<% if @popular.any? %>
+  <section class="page pt-14 lg:pt-20" aria-labelledby="popular_heading">
+    <%= render "shared/section_heading", id: "popular_heading", title: "Popular right now",
+          subtitle: "Our best sellers, ranked by what customers actually buy.",
+          link_label: "Shop all", link_path: products_path %>
+    <%= render "products/grid", products: @popular, **card_state %>
+  </section>
+<% end %>
+
+<%# Recommended %>
+<% if @recommended.any? %>
+  <section class="page pt-14 lg:pt-20" aria-labelledby="recommended_heading">
+    <%= render "shared/section_heading", id: "recommended_heading",
+          title: (@recommended_personal ? "Recommended for you" : "Top rated by customers"),
+          subtitle: (@recommended_personal ? "Highly rated picks from the categories you shop." : "The highest average ratings from verified buyers."),
+          link_label: "See more", link_path: products_path(sort: "rating") %>
+    <%= render "products/grid", products: @recommended, **card_state %>
+  </section>
+<% end %>
+
+<%# Trust %>
+<section class="page pt-14 lg:pt-20" aria-label="Why shop with us">
+  <ul class="grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-line bg-line min-[480px]:grid-cols-2 lg:grid-cols-4">
+    <% [ [ :truck, "Free Shipping", "On every order over #{format_price_cents(Order::FREE_SHIPPING_THRESHOLD_CENTS, trim: true)}." ],
+         [ :returns, "Easy Returns", "30 days to change your mind, no questions asked." ],
+         [ :shield, "Secure Checkout", "Your details are encrypted from cart to confirmation." ],
+         [ :support, "Helpful Support", "Find answers to common questions in our Help Center." ] ].each do |icon_name, title, body| %>
+      <li class="flex items-start gap-4 bg-surface p-6 lg:p-8">
+        <span class="flex size-11 shrink-0 items-center justify-center rounded-full bg-bg text-ink"><%= icon(icon_name, css_class: "size-[22px]", stroke_width: 1.5) %></span>
+        <div>
+          <h3 class="text-[15px] font-semibold text-ink"><%= title %></h3>
+          <p class="mt-1 text-sm leading-relaxed text-muted"><%= body %></p>
+        </div>
+      </li>
+    <% end %>
+  </ul>
+</section>
+
+<%# Recently viewed %>
+<% if @recently_viewed.any? %>
+  <section class="page pt-14 lg:pt-20" aria-labelledby="recent_heading">
+    <%= render "shared/section_heading", id: "recent_heading", title: "Recently viewed",
+          subtitle: "Pick up where you left off." %>
+    <%= render "products/grid", products: @recently_viewed.first(4), **card_state %>
+  </section>
+<% end %>
+
+<%# Newsletter %>
+<section class="page pt-14 lg:pt-20" aria-labelledby="newsletter_heading">
+  <div class="grid gap-8 overflow-hidden rounded-hero bg-ink px-6 py-10 text-white sm:px-10 lg:grid-cols-2 lg:items-center lg:px-14 lg:py-14">
+    <div>
+      <p class="eyebrow text-brand">The Aisle letter</p>
+      <h2 id="newsletter_heading" class="mt-3 text-2xl font-semibold tracking-tight sm:text-[28px] lg:text-[32px]">New arrivals and deals, once a week.</h2>
+      <p class="mt-3 max-w-md text-[15px] leading-relaxed text-white/70">One short email every Friday. Unsubscribe anytime.</p>
+    </div>
+    <%= render "home/newsletter_form", subscribed: false, email: nil %>
+  </div>
+</section>

@@ -1,0 +1,23 @@
+<%# locals: (subscribed:, email:) %>
+<div id="newsletter_form" aria-live="polite">
+  <% if subscribed %>
+    <div class="flex items-start gap-3 rounded-2xl bg-white/10 p-5">
+      <%= icon(:check_circle, css_class: "size-6 shrink-0 text-brand") %>
+      <div>
+        <p class="font-semibold">You&rsquo;re on the list.</p>
+        <p class="mt-1 text-sm text-white/70">We&rsquo;ll write to <span class="text-white"><%= email %></span> on Friday.</p>
+      </div>
+    </div>
+  <% else %>
+    <%= form_with url: newsletter_subscriptions_path, method: :post, class: "flex flex-col gap-3 sm:flex-row" do |f| %>
+      <%= f.label :email, "Email address", class: "sr-only", for: "newsletter_email" %>
+      <%= f.email_field :email, id: "newsletter_email", value: email, required: true, autocomplete: "email",
+            placeholder: "you@example.com", "aria-invalid": (email.present? ? "true" : nil),
+            class: "input border-transparent hover:border-transparent sm:flex-1" %>
+      <%= f.submit "Subscribe", data: { turbo_submits_with: "Subscribing…" }, class: "btn-primary btn-lg focus-visible:ring-offset-ink" %>
+    <% end %>
+    <% if email.present? %>
+      <p class="mt-2 text-sm text-white/80">Please enter a valid email address.</p>
+    <% end %>
+  <% end %>
+</div>

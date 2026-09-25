@@ -1,23 +1,27 @@
 <% if pagy.last > 1 %>
-  <nav class="mt-10 flex items-center justify-center gap-1 flex-wrap" aria-label="Pagination">
+  <nav class="mt-12 flex flex-wrap items-center justify-center gap-1" aria-label="Pagination">
     <% if pagy.previous %>
-      <%= link_to "Previous", pagy.page_url(:previous), class: "btn-ghost" %>
+      <%= link_to pagy.page_url(:previous), class: "btn-tertiary min-w-11 px-3", "aria-label": "Previous page" do %>
+        <%= icon(:chevron_left, css_class: "size-4") %><span class="hidden sm:inline">Previous</span>
+      <% end %>
     <% else %>
-      <span class="btn-ghost text-muted opacity-50 cursor-not-allowed" aria-disabled="true">Previous</span>
+      <span class="btn-tertiary min-w-11 px-3" aria-disabled="true"><%= icon(:chevron_left, css_class: "size-4") %><span class="hidden sm:inline">Previous</span></span>
     <% end %>
 
     <% (1..pagy.last).each do |page_number| %>
       <% if page_number == pagy.page %>
-        <span class="btn min-w-11 bg-ink text-surface tabular-nums" aria-current="page"><%= page_number %></span>
+        <span class="btn selected min-w-11 px-0 tabular-nums" aria-current="page"><%= page_number %></span>
       <% else %>
-        <%= link_to page_number, pagy.page_url(page_number), class: "btn-ghost min-w-11 tabular-nums", "aria-label": "Page #{page_number}" %>
+        <%= link_to page_number, pagy.page_url(page_number), class: "btn-tertiary min-w-11 px-0 tabular-nums", "aria-label": "Page #{page_number}" %>
       <% end %>
     <% end %>
 
     <% if pagy.next %>
-      <%= link_to "Next", pagy.page_url(:next), class: "btn-ghost" %>
+      <%= link_to pagy.page_url(:next), class: "btn-tertiary min-w-11 px-3", "aria-label": "Next page" do %>
+        <span class="hidden sm:inline">Next</span><%= icon(:chevron_right, css_class: "size-4") %>
+      <% end %>
     <% else %>
-      <span class="btn-ghost text-muted opacity-50 cursor-not-allowed" aria-disabled="true">Next</span>
+      <span class="btn-tertiary min-w-11 px-3" aria-disabled="true"><span class="hidden sm:inline">Next</span><%= icon(:chevron_right, css_class: "size-4") %></span>
     <% end %>
   </nav>
 <% end %>

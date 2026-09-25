@@ -40,6 +40,10 @@ RSpec.describe Orders::CheckoutService do
         expect(order.total_cents).to eq((2 * 9999) + (3 * 1499))
       end
 
+      it "ships free over the threshold" do
+        expect(order.shipping_cents).to eq(0)
+      end
+
       it "snapshots each line's quantity and price" do
         expect(order.order_items.pluck(:product_id, :quantity, :price_cents))
           .to contain_exactly([ headphones.id, 2, 9999 ], [ novel.id, 3, 1499 ])
@@ -86,6 +90,22 @@ RSpec.describe Orders::CheckoutService do
       it "leaves the cart unchanged" do
         expect { checkout rescue nil }.not_to change { cart.cart_items.reload.pluck(:product_id, :quantity).sort }
       end
+    end
+  end
+
+  context "with a cart under the free-shipping threshold" do
+    let(:mug) { create(:product, price_cents: 1200, stock: 5) }
+    let!(:order) do
+      create(:cart_item, cart: cart, product: mug, quantity: 1)
+      checkout
+    end
+
+    it "records the shipping charge" do
+      expect(order.shipping_cents).to eq(Order::SHIPPING_FEE_CENTS)
+    end
+
+    it "includes shipping in the total" do
+      expect(order.total_cents).to eq(1200 + Order::SHIPPING_FEE_CENTS)
     end
   end
 
