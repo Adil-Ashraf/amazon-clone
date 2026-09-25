@@ -42,7 +42,7 @@
 
   <div class="mb-6 lg:mb-8">
     <h1 class="page-title"><%= heading %></h1>
-    <p class="mt-2 text-[15px] text-muted tabular-nums">
+    <p id="results_summary" class="mt-2 text-[15px] text-muted tabular-nums">
       <%= pluralize(number_with_delimiter(@pagy.count), "product") %>
     </p>
   </div>

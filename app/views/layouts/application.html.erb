@@ -17,8 +17,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 
+    <%# PNG first for browsers without SVG favicons; SVG last so the rest prefer it. %>
+    <%= favicon_link_tag "icon.png", type: "image/png", sizes: "512x512" %>
     <%= favicon_link_tag "icon.svg", type: "image/svg+xml" %>
-    <%= favicon_link_tag "icon.png", rel: "apple-touch-icon" %>
+    <%= favicon_link_tag "icon.png", rel: "apple-touch-icon", type: "image/png" %>
 
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>

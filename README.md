@@ -67,7 +67,9 @@ components and page layouts, and where each UI signal comes from (§6).
 **Catalog**
 - 8 categories and 110 products, each with a photo; a designed fallback tile
   shows only if a photo fails to load
-- Full-text search on name and description (Postgres `tsearch`, prefix match)
+- Full-text search on name and description (Postgres `tsearch`, prefix match).
+  On the catalog, results update as you type (debounced Turbo Frame visit),
+  keep the current filters, and update the URL; Enter works everywhere.
 - Filters: category, price range, in stock only, on sale, minimum rating
 - Sorting: featured, price (low→high / high→low), newest, top rated, and best
   match when searching

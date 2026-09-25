@@ -5,6 +5,13 @@
     [ "Deals", products_path(deals: 1), on_listing && params[:deals] == "1" ],
     [ "New arrivals", products_path(sort: "newest"), on_listing && params[:sort] == "newest" && params[:category].blank? ]
   ]
+  # On the catalog, header search updates the results frame as you type
+  # (live_search_controller.js); elsewhere it's a normal GET search.
+  live_search_form = on_listing ? {
+    controller: "live-search", live_search_frame_value: "products_results",
+    action: "submit->live-search#submit turbo:frame-load@document->live-search#frameLoaded"
+  } : {}
+  live_search_input = on_listing ? { live_search_target: "input", action: "input->live-search#search blur->live-search#blur" } : {}
   nav_link_class = ->(active) {
     "relative flex h-12 items-center rounded text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand " +
       (active ? "text-ink after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:bg-brand" : "text-muted hover:text-ink")
@@ -20,7 +27,7 @@
 
     <%= render "shared/logo" %>
 
-    <%= form_with url: products_path, method: :get, role: "search",
+    <%= form_with url: products_path, method: :get, role: "search", data: live_search_form,
           class: "hidden flex-1 md:block lg:max-w-2xl lg:mx-auto" do |f| %>
       <%= f.label :query, "Search products, brands and more", class: "sr-only" %>
       <div class="relative">
@@ -29,9 +36,11 @@
               value: params[:query],
               placeholder: "Search products, brands and more...",
               autocomplete: "off",
+              data: live_search_input,
               class: "input h-12 rounded-full border-line bg-bg pl-12 pr-28 hover:border-line focus:bg-surface" %>
         <button type="submit" class="btn-primary absolute right-0.5 top-1/2 min-h-11 -translate-y-1/2 rounded-full px-5 text-sm">Search</button>
       </div>
+      <% if on_listing %><span class="sr-only" role="status" data-live-search-target="status"></span><% end %>
     <% end %>
 
     <nav class="ml-auto flex items-center gap-0.5 md:ml-0 lg:gap-1" aria-label="Account">
@@ -44,15 +53,16 @@
         </button>
         <div id="mobile_search" hidden data-menu-target="panel"
              class="absolute inset-x-0 top-full border-b border-line bg-surface px-4 py-3 shadow-float">
-          <%= form_with url: products_path, method: :get, role: "search" do |f| %>
+          <%= form_with url: products_path, method: :get, role: "search", data: live_search_form do |f| %>
             <%= f.label :query, "Search products, brands and more", class: "sr-only", for: "mobile_query" %>
             <div class="relative">
               <%= icon(:search, css_class: "pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted") %>
               <%= f.search_field :query, id: "mobile_query", value: params[:query],
                     placeholder: "Search products, brands and more...", autocomplete: "off",
-                    data: { menu_target: "focus" },
+                    data: { menu_target: "focus", **live_search_input },
                     class: "input rounded-full bg-bg pl-12" %>
             </div>
+            <% if on_listing %><span class="sr-only" role="status" data-live-search-target="status"></span><% end %>
           <% end %>
         </div>
       </div>
@@ -78,7 +88,7 @@
           </button>
 
           <div id="account_menu" hidden data-menu-target="panel"
-               class="absolute right-0 mt-2 w-72 rounded-2xl border border-line bg-surface p-2 shadow-float">
+               class="absolute right-0 z-50 mt-2 w-72 rounded-2xl border border-line bg-surface p-2 shadow-float">
             <div class="px-3 pt-2 pb-3">
               <p class="text-xs text-muted">Signed in as</p>
               <p class="truncate text-sm font-semibold text-ink"><%= current_user.email %></p>

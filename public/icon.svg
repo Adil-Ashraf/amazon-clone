@@ -1,8 +1,5 @@
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" rx="96" fill="#0f172a"/>
-  <g transform="translate(96,96) scale(13.33)" fill="none" stroke="#fbbf24" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M2 3 H5 L7.5 15 H18 L21 7 H6.5"/>
-    <circle cx="9" cy="20" r="1.5" fill="#fbbf24" stroke="none"/>
-    <circle cx="18" cy="20" r="1.5" fill="#fbbf24" stroke="none"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 32 32">
+  <!-- Aisle Market mark: the same shape as the header logo (shared/_logo). -->
+  <rect width="32" height="32" rx="9" fill="#F97316"/>
+  <path d="M10 23 16 8.5 22 23M12.4 17.5h7.2" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
