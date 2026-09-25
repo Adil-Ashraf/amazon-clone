@@ -6,5 +6,10 @@
     "Stop": [
       { "hooks": [{ "type": "command", "command": "python3 .claude/hooks/log_response.py" }] }
     ]
-  }
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "includeCoAuthoredBy": false
 }

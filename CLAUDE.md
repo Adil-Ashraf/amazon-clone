@@ -15,18 +15,25 @@ Stimulus via importmap), Tailwind v4 via `tailwindcss-rails` (`@theme` in
   Services in `test/services`, request flows in `test/integration`
   (`sign_in_as(user)` helper), browser flows in `test/system`.
 - Before any view/CSS/Stimulus work, read `docs/DESIGN.md`.
-- `.claude/rules/00-project-precedence.md` overrides the generic rules pack;
-  anything there assuming RSpec, `spec/`, FactoryBot or an API-only app does
-  not apply.
+- `.claude/rules/00-project-precedence.md` overrides the generic rules pack; any
+  rule assuming RSpec, `spec/`, FactoryBot or an API-only app does not apply.
 
 ## Commands
 
 Always run Rails commands through Docker: bin/docker-dev test | system | lint |
 security | console | bash. The host Ruby is not used.
 
-```sh
-bin/docker-dev test       # bin/rails test (unit, service, integration)
-bin/docker-dev system     # bin/rails test:system against the chrome service
-bin/docker-dev lint       # bin/rubocop
-bin/docker-dev security   # bin/brakeman --no-pager
-```
+- `bin/docker-dev test` runs `bin/rails test` (unit, service, integration)
+- `bin/docker-dev system` runs `bin/rails test:system` against the chrome service
+- `bin/docker-dev lint` runs `bin/rubocop`; `security` runs `bin/brakeman --no-pager`
+- `docker compose up` starts the app on http://localhost:3000
+
+## Commits
+
+- Commits are authored by the configured git user only.
+- Never add "Co-Authored-By", "Generated with Claude Code" or any AI trailer/footer.
+- Never put prompt text, instructions or conversation content in commit messages.
+- Conventional Commits: subject of at most 72 characters (`feat:`, `fix:`,
+  `chore:`, `docs:`, `test:`, `refactor:`), then optionally a short body
+  explaining what changed and why, in plain engineering language.
+- Don't use `--no-verify`, and don't change git config.
