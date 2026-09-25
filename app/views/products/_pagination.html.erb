@@ -1,23 +1,23 @@
 <% if pagy.last > 1 %>
-  <nav class="mt-8 flex items-center justify-center gap-1 flex-wrap" aria-label="Pagination">
+  <nav class="mt-10 flex items-center justify-center gap-1 flex-wrap" aria-label="Pagination">
     <% if pagy.previous %>
-      <%= link_to "Prev", pagy.page_url(:previous), class: "px-3 py-1.5 rounded text-sm font-medium text-gray-700 hover:bg-gray-100" %>
+      <%= link_to "Previous", pagy.page_url(:previous), class: "btn-ghost" %>
     <% else %>
-      <span class="px-3 py-1.5 rounded text-sm font-medium text-gray-300 cursor-not-allowed">Prev</span>
+      <span class="btn-ghost text-muted opacity-50 cursor-not-allowed" aria-disabled="true">Previous</span>
     <% end %>
 
     <% (1..pagy.last).each do |page_number| %>
       <% if page_number == pagy.page %>
-        <span class="px-3 py-1.5 rounded text-sm font-semibold bg-slate-900 text-white" aria-current="page"><%= page_number %></span>
+        <span class="btn min-w-11 bg-ink text-surface tabular-nums" aria-current="page"><%= page_number %></span>
       <% else %>
-        <%= link_to page_number, pagy.page_url(page_number), class: "px-3 py-1.5 rounded text-sm font-medium text-gray-700 hover:bg-gray-100" %>
+        <%= link_to page_number, pagy.page_url(page_number), class: "btn-ghost min-w-11 tabular-nums", "aria-label": "Page #{page_number}" %>
       <% end %>
     <% end %>
 
     <% if pagy.next %>
-      <%= link_to "Next", pagy.page_url(:next), class: "px-3 py-1.5 rounded text-sm font-medium text-gray-700 hover:bg-gray-100" %>
+      <%= link_to "Next", pagy.page_url(:next), class: "btn-ghost" %>
     <% else %>
-      <span class="px-3 py-1.5 rounded text-sm font-medium text-gray-300 cursor-not-allowed">Next</span>
+      <span class="btn-ghost text-muted opacity-50 cursor-not-allowed" aria-disabled="true">Next</span>
     <% end %>
   </nav>
 <% end %>

@@ -39,6 +39,10 @@ RSpec.describe "Cart items", type: :request do
           expect(turbo_stream_targets).to include("cart_count", "cart_items")
         end
 
+        it "replaces the product's quick-add control and adds a toast" do
+          expect(turbo_stream_targets).to include(ActionView::RecordIdentifier.dom_id(product, :quick_add), "toasts")
+        end
+
         it "stores the requested quantity" do
           expect(user.cart.cart_items.find_by(product: product).quantity).to eq(2)
         end
@@ -59,6 +63,22 @@ RSpec.describe "Cart items", type: :request do
           it "still updates the cart count and cart items streams" do
             expect(turbo_stream_targets).to include("cart_count", "cart_items")
           end
+        end
+      end
+
+      context "without Turbo Streams" do
+        def add_to_cart_as_html
+          post cart_items_path, params: { product_id: product.id }, headers: { "HTTP_REFERER" => products_url }
+        end
+
+        it "creates a line" do
+          expect { add_to_cart_as_html }.to change { user.cart.cart_items.count }.by(1)
+        end
+
+        context "after the request" do
+          before { add_to_cart_as_html }
+
+          it { expect(response).to redirect_to(products_url) }
         end
       end
     end
@@ -97,6 +117,16 @@ RSpec.describe "Cart items", type: :request do
       end
     end
 
+    context "without Turbo Streams" do
+      before { patch cart_item_path(line), params: { quantity: 3 } }
+
+      it { expect(response).to redirect_to(cart_path) }
+
+      it "updates the quantity" do
+        expect(line.reload.quantity).to eq(3)
+      end
+    end
+
     context "for another user's cart item" do
       let(:other_line) { create(:cart_item, cart: create(:cart), quantity: 1) }
 
@@ -132,6 +162,22 @@ RSpec.describe "Cart items", type: :request do
         it "updates the cart count and cart items streams" do
           expect(turbo_stream_targets).to include("cart_count", "cart_items")
         end
+      end
+    end
+
+    context "without Turbo Streams" do
+      def remove_line_as_html
+        delete cart_item_path(line)
+      end
+
+      it "removes the line" do
+        expect { remove_line_as_html }.to change(CartItem, :count).by(-1)
+      end
+
+      context "after removing" do
+        before { remove_line_as_html }
+
+        it { expect(response).to redirect_to(cart_path) }
       end
     end
 

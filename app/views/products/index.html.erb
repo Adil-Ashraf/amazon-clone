@@ -1,79 +1,94 @@
-<% content_for :title, @query.present? ? "Search: #{@query}" : (@selected_category&.name || "All Products") %>
+<%
+  heading = if @query.present?
+    "Results for “#{@query}”"
+  else
+    @selected_category&.name || "All products"
+  end
+%>
+<% content_for :title, heading %>
 
-<%# The sidebar lives INSIDE this frame -- it must re-render on every category
-    click alongside the grid, atomically, from the same response. Previously it
-    sat outside the frame as a sibling, so a Turbo-Frame-scoped category click
-    only swapped the grid; the sidebar's server-rendered active-state class
-    (comparing @selected_category against each category) never got a chance to
-    re-run, so the highlight stayed frozen at whatever it was on the last full
-    page load. %>
+<%# The category chips live INSIDE this frame -- they must re-render on every
+    category click alongside the grid, atomically, from the same response.
+    Previously they sat outside the frame as a sibling, so a Turbo-Frame-scoped
+    category click only swapped the grid; the chips' server-rendered
+    active-state class (comparing @selected_category against each category)
+    never got a chance to re-run, so the highlight stayed frozen at whatever it
+    was on the last full page load. %>
 <%= turbo_frame_tag "products_results", data: { turbo_action: "advance" } do %>
-  <div class="flex flex-col md:flex-row gap-6">
-    <aside class="md:w-56 shrink-0">
-      <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-2">Categories</h2>
-      <ul class="flex md:flex-col gap-2 md:gap-1 overflow-x-auto md:overflow-visible -mx-4 px-4 md:mx-0 md:px-0 pb-2 md:pb-0">
+  <div class="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+    <h1 class="font-display text-4xl leading-tight"><%= heading %></h1>
+    <% if @pagy.count.positive? %>
+      <p class="text-sm text-muted tabular-nums">
+        Showing <%= @pagy.from %>&ndash;<%= @pagy.to %> of <%= @pagy.count %>
+      </p>
+    <% end %>
+  </div>
+
+  <div class="mt-6 mb-8 flex flex-col gap-4 sm:flex-row sm:items-center">
+    <nav aria-label="Categories" class="-mx-4 px-4 sm:mx-0 sm:px-0 flex-1 min-w-0 overflow-x-auto">
+      <ul class="flex gap-2 pb-1">
         <li class="shrink-0">
-          <%= link_to products_path(query: @query.presence), data: { turbo_frame: "products_results" },
-                class: "flex items-center gap-2 px-3 py-1.5 rounded-full md:rounded whitespace-nowrap text-sm #{@selected_category ? 'text-gray-700 hover:bg-gray-100 bg-gray-100 md:bg-transparent' : 'bg-slate-900 text-white'}" do %>
-            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="3" y="3" width="8" height="8" rx="1"/>
-              <rect x="13" y="3" width="8" height="8" rx="1"/>
-              <rect x="3" y="13" width="8" height="8" rx="1"/>
-              <rect x="13" y="13" width="8" height="8" rx="1"/>
-            </svg>
-            All Products
-          <% end %>
+          <%= link_to "All", products_path(query: @query.presence, sort: @sort_param),
+                "aria-current": (@selected_category ? nil : "page"),
+                class: "chip whitespace-nowrap #{'chip-active' unless @selected_category}" %>
         </li>
         <% @categories.each do |category| %>
+          <% active = @selected_category == category %>
           <li class="shrink-0">
-            <%= link_to products_path(category: category.slug, query: @query.presence), data: { turbo_frame: "products_results" },
-                  class: "flex items-center gap-2 px-3 py-1.5 rounded-full md:rounded whitespace-nowrap text-sm #{@selected_category == category ? 'bg-slate-900 text-white' : 'text-gray-700 hover:bg-gray-100 bg-gray-100 md:bg-transparent'}" do %>
+            <%= link_to products_path(category: category.slug, query: @query.presence, sort: @sort_param),
+                  "aria-current": (active ? "page" : nil),
+                  class: "chip gap-2 whitespace-nowrap #{'chip-active' if active}" do %>
               <%= category_icon(category, css_class: "w-4 h-4 shrink-0") %>
               <%= category.name %>
             <% end %>
           </li>
         <% end %>
       </ul>
-    </aside>
+    </nav>
 
-    <div class="flex-1">
-      <div class="mb-4 flex items-center justify-between flex-wrap gap-2">
-        <h1 class="text-xl font-semibold text-gray-900">
-          <% if @query.present? %>
-            Search results for &ldquo;<%= @query %>&rdquo;
-          <% else %>
-            <%= @selected_category&.name || "All Products" %>
-          <% end %>
-        </h1>
-        <p class="text-sm text-gray-500">
-          <% if @pagy.count.zero? %>
-            0 products
-          <% else %>
-            Showing <%= @pagy.from %>&ndash;<%= @pagy.to %> of <%= pluralize(@pagy.count, "product") %>
-          <% end %>
-        </p>
-      </div>
+    <%= form_with url: products_path, method: :get,
+          data: { controller: "auto-submit", turbo_frame: "products_results" },
+          class: "flex items-center gap-2 shrink-0" do |f| %>
+      <%= hidden_field_tag :category, @selected_category&.slug, id: nil if @selected_category %>
+      <%= hidden_field_tag :query, @query, id: nil if @query.present? %>
+      <%= f.label :sort, "Sort", class: "text-sm text-muted" %>
+      <%= f.select :sort,
+            options_for_select(
+              [ ([ "Relevance", "relevance" ] if @query.present?),
+                [ "Name", "name" ],
+                [ "Price: low to high", "price_asc" ],
+                [ "Price: high to low", "price_desc" ],
+                [ "Newest", "newest" ] ].compact,
+              @sort),
+            {},
+            data: { action: "auto-submit#submit" },
+            class: "input pr-8 text-sm" %>
+      <noscript><%= f.submit "Apply", name: nil, class: "btn-secondary" %></noscript>
+    <% end %>
+  </div>
 
-      <% if @products.any? %>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-          <% @products.each do |product| %>
-            <%= render "product_card", product: product %>
-          <% end %>
-        </div>
-        <%= render "pagination", pagy: @pagy %>
-      <% else %>
-        <div class="<%= card_classes("p-10 text-center text-gray-600") %>">
-          <% if @query.present? %>
-            <p class="mb-3">No products found for &ldquo;<%= @query %>&rdquo;.</p>
-            <%= link_to "Clear search", products_path(category: @selected_category&.slug), class: "text-blue-600 hover:underline" %>
-          <% elsif @selected_category %>
-            <p class="mb-3">No products in <%= @selected_category.name %> yet.</p>
-            <%= link_to "Browse all products", products_path, class: "text-blue-600 hover:underline" %>
-          <% else %>
-            <p>No products available.</p>
-          <% end %>
-        </div>
+  <% if @products.any? %>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+      <% @products.each do |product| %>
+        <%= render "product_card", product: product, in_bag_quantity: @bag_quantities[product.id] %>
       <% end %>
     </div>
-  </div>
+    <%= render "pagination", pagy: @pagy %>
+  <% elsif @query.present? %>
+    <%= render "shared/empty_state", icon: :search,
+          title: "Nothing matches “#{@query}”",
+          body: "Try a shorter or different word#{" or another category" if @selected_category}.",
+          action_label: "Clear search",
+          action_path: products_path(category: @selected_category&.slug) %>
+  <% elsif @selected_category %>
+    <%= render "shared/empty_state", icon: :grid,
+          title: "Nothing in #{@selected_category.name} yet",
+          body: "This category is empty right now.",
+          action_label: "Browse all products",
+          action_path: products_path %>
+  <% else %>
+    <%= render "shared/empty_state", icon: :grid,
+          title: "No products yet",
+          body: "The catalog is empty right now. Check back soon." %>
+  <% end %>
 <% end %>

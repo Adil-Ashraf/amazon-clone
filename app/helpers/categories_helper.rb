@@ -1,7 +1,7 @@
 module CategoriesHelper
   # Simple Heroicons-outline-style glyphs (24x24 viewBox, stroke-based) keyed
-  # by Category#icon_key. Shared between the category sidebar and the
-  # generated product placeholder images in db/seeds.rb.
+  # by Category#icon_key. Shared between the category chips and the
+  # designed product tiles (ProductsHelper#product_image_tag).
   ICON_PATHS = {
     chip: <<~SVG,
       <rect x="6" y="6" width="12" height="12" rx="2"/>

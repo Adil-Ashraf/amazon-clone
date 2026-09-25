@@ -1,13 +1,22 @@
-<%= link_to product_path(product), data: { turbo_frame: "_top" },
-      class: card_classes("group block hover:shadow-md transition-shadow overflow-hidden") do %>
-  <div class="aspect-[4/3] bg-gray-200">
-    <%= product_image_tag product, alt: product.name, loading: "lazy",
-          class: "group-hover:scale-105 transition-transform duration-200" %>
+<%# locals: (product:, in_bag_quantity:) %>
+<article class="card group overflow-hidden flex flex-col">
+  <%# Duplicate of the name link below, so it's hidden from keyboard and screen readers. %>
+  <%= link_to product_path(product), data: { turbo_frame: "_top" }, tabindex: -1, "aria-hidden": "true",
+        class: "block aspect-[4/3] overflow-hidden border-b border-line" do %>
+    <%= product_image_tag product,
+          css_class: "motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-[1.03]" %>
+  <% end %>
+
+  <div class="p-4 flex flex-1 flex-col gap-2">
+    <p class="text-xs text-muted"><%= product.category.name %></p>
+    <h3 class="text-sm font-medium leading-snug">
+      <%= link_to product.name, product_path(product), data: { turbo_frame: "_top" },
+            class: "line-clamp-2 rounded hover:underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent" %>
+    </h3>
+    <div class="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2">
+      <p class="price text-base"><%= format_price_cents(product.price_cents) %></p>
+      <%= render "products/quick_add", product: product, in_bag_quantity: in_bag_quantity %>
+    </div>
+    <div><%= stock_badge(product) %></div>
   </div>
-  <div class="p-4">
-    <p class="text-xs text-gray-500 uppercase tracking-wide mb-1"><%= product.category.name %></p>
-    <h3 class="text-sm font-medium text-gray-900 line-clamp-2 mb-2 min-h-10"><%= product.name %></h3>
-    <p class="text-lg font-semibold text-gray-900 mb-1"><%= format_price_cents(product.price_cents) %></p>
-    <%= stock_badge(product) %>
-  </div>
-<% end %>
+</article>

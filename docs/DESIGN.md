@@ -101,6 +101,7 @@ stock palettes (`gray-*`, `amber-*`) in markup.
 | `.chip` / `.chip-active` | Category filters. Active chip is accent-filled.                 |
 | `.pill`           | Status indicator (order status, stock). Colors come from the caller.   |
 | toast             | Transient confirmation ("Added to your bag"), `role="status"`.         |
+| product tile      | `product_image_tag(product)`: category-tinted tile with the category icon and short name. Fills the caller's box. |
 | stock badge       | `stock_badge(product)`: pill with a dot, copy per section 2.           |
 | qty stepper       | − / count / + with 44px buttons, bounded by available stock.           |
 | empty state       | One sentence of what's missing, one action to fix it. No illustration filler. |
@@ -132,7 +133,7 @@ already includes it, so `class="btn-primary"` is enough. `.price` applies tabula
 | Header | Dense dark bar with location, account menus, many links | Light bar: serif wordmark, search trigger, Orders, bag with count | Fewer destinations, clearer hierarchy |
 | Search | Always-open field with a department dropdown | ⌘K / tap-to-open search palette with live results | Frees the header; search is one keystroke away on desktop and one tap on mobile |
 | Categories | Hamburger mega-menu | A row of chips above the grid, one active at a time | Visible, scannable, thumb-friendly |
-| Grid density + quick-add | Up to 6 columns, tiny tiles, badges everywhere | 2 / 3 / 4 columns, image, name, price, stock; "Add to bag" on the tile | Enough to decide from the grid without opening every product |
+| Grid density + quick-add | Up to 6 columns, tiny tiles, badges everywhere | 2 / 3 / 4 columns, image, name, price, stock; a quick "Add" on the tile | Enough to decide from the grid without opening every product |
 | Stock wording | "Only 2 left — order soon", red urgency | "In stock" / "Only N left" / "Sold out" | Factual; the number is real and the tone is neutral |
 | Product page | Buy box with Add to cart, Buy now, subscriptions, protection plans | One CTA: Add to bag, with a qty stepper | One decision per page |
 | Bag | Full-page cart after every add | Slide-over bag drawer; full page still exists | Keep browsing context; confirm without leaving |
@@ -143,4 +144,5 @@ already includes it, so `class="btn-primary"` is enough. `.price` applies tabula
 | Past prices | Shows current product price on old orders | "Prices shown are what you paid" from the `OrderItem` snapshot | Order history is a record, not a catalog |
 | Buy again | Separate "Buy again" storefront | "Buy again" button on past order items, adds to bag | Reorder where the person already is |
 | Demo sign-in | Account required, no shortcut | "Continue with demo account" on sign-in | Reviewers can try the full flow instantly |
+| Product imagery | Amazon shows seller photos | Aisle shows a consistent designed tile per product | This catalog has no real product photos; showing a photo of a different item would be a fake signal |
 | After sign-in | Lands on the home page | Returns to the page that asked for sign-in | Don't lose the person's place |

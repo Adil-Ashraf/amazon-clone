@@ -75,6 +75,61 @@ RSpec.describe "Products", type: :request do
       end
     end
 
+    context "with an unknown sort" do
+      before { get_products(sort: "price_cents; DROP TABLE products") }
+
+      it { expect(response).to have_http_status(:ok) }
+
+      it "still links to every product" do
+        expect(response_link_hrefs).to include(product_path(headphones), product_path(novel))
+      end
+    end
+
+    context "sorted by price" do
+      let!(:cheap) { create(:product, price_cents: 100, category: books) }
+      let!(:pricey) { create(:product, price_cents: 99_900, category: books) }
+
+      def product_link_order
+        response_link_hrefs.uniq & [ product_path(cheap), product_path(pricey) ]
+      end
+
+      context "low to high" do
+        before { get_products(sort: "price_asc") }
+
+        it "lists the cheaper product first" do
+          expect(product_link_order).to eq([ product_path(cheap), product_path(pricey) ])
+        end
+      end
+
+      context "high to low" do
+        before { get_products(sort: "price_desc") }
+
+        it "lists the pricier product first" do
+          expect(product_link_order).to eq([ product_path(pricey), product_path(cheap) ])
+        end
+      end
+
+      context "with a query" do
+        before do
+          cheap.update!(name: "Cheap Lamp")
+          pricey.update!(name: "Pricey Lamp")
+          get_products(query: "lamp", sort: "price_desc")
+        end
+
+        it "orders the matches by price" do
+          expect(product_link_order).to eq([ product_path(pricey), product_path(cheap) ])
+        end
+      end
+    end
+
+    context "with a page past the last page and a sort" do
+      before { get_products(sort: "price_desc", page: 999) }
+
+      it "keeps the sort when redirecting" do
+        expect(response).to redirect_to(products_path(sort: "price_desc", page: 1))
+      end
+    end
+
     context "with a valid page that exists" do
       before do
         create_list(:product, ProductsController::PER_PAGE, category: books)

@@ -1,12 +1,11 @@
 # This file seeds a realistic catalog so the app doesn't look empty on first run.
 # Safe to run repeatedly: everything is looked up with find_or_create_by!.
 #
-# Products have no stored image of any kind -- ProductsHelper#product_image_tag
-# always generates a colored category-icon tile on the fly (see
-# app/helpers/products_helper.rb). Earlier attempts to pull real photos from
-# an external keyword-matched photo service were dropped entirely: results
-# were too often unrelated to the product and sometimes carried a baked-in
-# attribution watermark, with no way to verify either before it rendered.
+# Products have no stored image of any kind, and the app shows no photos:
+# ProductsHelper#product_image_tag renders a designed tile per product (a tint
+# of the category colour with the category icon). The catalog has no real
+# product photos, and a stock photo of a different item would be a fake
+# signal (docs/DESIGN.md).
 
 CATEGORIES_WITH_PRODUCTS = {
   "Electronics" => [
