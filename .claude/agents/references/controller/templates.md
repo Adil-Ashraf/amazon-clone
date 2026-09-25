@@ -1,324 +1,197 @@
-# Controller Templates
+# Controller Templates (HTML + Turbo Stream)
 
-## Standard REST Controller
+Modeled on this app's controllers. Every template follows
+`.claude/rules/controllers.md`: thin actions, `require_login`, lookups scoped
+through `current_user`, Pundit `authorize`, service errors rescued.
+
+## 1. Turbo Stream mutation controller (like `CartItemsController`)
 
 ```ruby
-class ResourcesController < ApplicationController
-  # Authentication (Devise)
-  before_action :authenticate_user!, except: [:index, :show]
+# app/controllers/cart_items_controller.rb
+class CartItemsController < ApplicationController
+  before_action :require_login
+  before_action :set_cart
 
-  # Load resource
-  before_action :set_resource, only: [:show, :edit, :update, :destroy]
-
-  # GET /resources
-  def index
-    @resources = Resource.all
-    authorize @resources
-
-    # Optional: filtering, sorting, pagination
-    @resources = @resources.where(status: params[:status]) if params[:status].present?
-    @resources = @resources.order(created_at: :desc).page(params[:page])
-  end
-
-  # GET /resources/:id
-  def show
-    authorize @resource
-  end
-
-  # GET /resources/new
-  def new
-    @resource = Resource.new
-    authorize @resource
-  end
-
-  # POST /resources
   def create
-    authorize Resource
+    product = Product.find(params[:product_id])
+    quantity = params[:quantity].presence&.to_i || 1
 
-    result = Resources::CreateService.call(
-      user: current_user,
-      params: resource_params
-    )
+    begin
+      Carts::CartService.new(@cart).add_item(product: product, quantity: quantity)
+      @status_message = "Added to cart."
+      @status_variant = :success
+    rescue Carts::CartService::InsufficientStockError => e
+      @status_message = e.message
+      @status_variant = :error
+    end
 
-    if result.success?
-      redirect_to result.data, notice: "Resource created successfully."
-    else
-      @resource = Resource.new(resource_params)
-      @resource.errors.merge!(result.error)
-      render :new, status: :unprocessable_entity
+    load_cart_items
+    respond_to do |format|
+      format.turbo_stream                       # create.turbo_stream.erb
+      format.html { redirect_to cart_path, notice: @status_message }
     end
   end
 
-  # GET /resources/:id/edit
-  def edit
-    authorize @resource
-  end
-
-  # PATCH /resources/:id
   def update
-    authorize @resource
+    cart_item = @cart.cart_items.find(params[:id]) # another user's item → 404
 
-    result = Resources::UpdateService.call(
-      resource: @resource,
-      params: resource_params
-    )
+    begin
+      Carts::CartService.new(@cart).update_quantity(cart_item: cart_item, quantity: params[:quantity].to_i)
+    rescue Carts::CartService::InsufficientStockError => e
+      @cart_flash_message = e.message
+    end
 
-    if result.success?
-      redirect_to result.data, notice: "Resource updated successfully."
-    else
-      @resource.errors.merge!(result.error)
-      render :edit, status: :unprocessable_entity
+    load_cart_items
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to cart_path, alert: @cart_flash_message }
     end
   end
 
-  # DELETE /resources/:id
   def destroy
-    authorize @resource
+    cart_item = @cart.cart_items.find(params[:id])
+    Carts::CartService.new(@cart).remove_item(cart_item: cart_item)
 
-    @resource.destroy!
-    redirect_to resources_path, notice: "Resource deleted successfully."
+    load_cart_items
+    respond_to do |format|
+      format.turbo_stream
+      format.html { redirect_to cart_path }
+    end
   end
 
   private
 
-  def set_resource
-    @resource = Resource.find(params[:id])
+  def set_cart
+    @cart = current_user.cart
+    authorize @cart, :update?
   end
 
-  def resource_params
-    params.require(:resource).permit(:name, :description, :status)
+  def load_cart_items
+    @cart_items = @cart.cart_items.includes(:product).order(:created_at)
   end
 end
 ```
 
-## Controller with Service Objects
+The matching stream template updates stable target ids:
+
+```erb
+<%# app/views/cart_items/create.turbo_stream.erb %>
+<%= render "sync" %>
+
+<%= turbo_stream.update "add_to_cart_status" do %>
+  <%= render "shared/toast", variant: @status_variant, message: @status_message %>
+<% end %>
+```
+
+```erb
+<%# app/views/cart_items/_sync.turbo_stream.erb %>
+<%= turbo_stream.replace "cart_count" do %>
+  <%= render "shared/cart_count_badge" %>
+<% end %>
+
+<%= turbo_stream.replace "cart_items" do %>
+  <div id="cart_items">
+    <%= render "carts/cart", cart: @cart, cart_items: @cart_items %>
+  </div>
+<% end %>
+```
+
+## 2. Read-only, owner-scoped controller (like `OrdersController`)
 
 ```ruby
 class OrdersController < ApplicationController
-  before_action :authenticate_user!
-  before_action :set_order, only: [:show, :cancel]
+  before_action :require_login
 
-  # POST /orders
-  def create
-    authorize Order
-
-    result = Orders::CreateService.call(
-      user: current_user,
-      cart: current_cart,
-      payment_params: payment_params
-    )
-
-    if result.success?
-      redirect_to result.data, notice: "Order placed successfully!"
-    else
-      @order = Order.new
-      @order.errors.add(:base, result.error)
-      render :new, status: :unprocessable_entity
-    end
-  end
-
-  # POST /orders/:id/cancel
-  def cancel
-    authorize @order, :cancel?
-
-    result = Orders::CancelService.call(order: @order, reason: params[:reason])
-
-    if result.success?
-      redirect_to @order, notice: "Order cancelled."
-    else
-      redirect_to @order, alert: result.error, status: :unprocessable_entity
-    end
-  end
-
-  private
-
-  def set_order
-    @order = current_user.orders.find(params[:id])
-  end
-
-  def payment_params
-    params.require(:payment).permit(:method, :token)
-  end
-end
-```
-
-## Nested Resources Controller
-
-```ruby
-class ReviewsController < ApplicationController
-  before_action :authenticate_user!
-  before_action :set_restaurant
-  before_action :set_review, only: [:show, :edit, :update, :destroy]
-
-  # GET /restaurants/:restaurant_id/reviews
   def index
-    @reviews = @restaurant.reviews.published.recent
-    authorize @reviews
+    @orders = current_user.orders.order(created_at: :desc)
   end
 
-  # POST /restaurants/:restaurant_id/reviews
-  def create
-    authorize Review
-
-    result = Reviews::CreateService.call(
-      user: current_user,
-      restaurant: @restaurant,
-      params: review_params
-    )
-
-    if result.success?
-      redirect_to restaurant_path(@restaurant), notice: "Review posted!"
-    else
-      @review = @restaurant.reviews.build(review_params)
-      @review.errors.merge!(result.error)
-      render :new, status: :unprocessable_entity
-    end
-  end
-
-  private
-
-  def set_restaurant
-    @restaurant = Restaurant.find(params[:restaurant_id])
-  end
-
-  def set_review
-    @review = @restaurant.reviews.find(params[:id])
-  end
-
-  def review_params
-    params.require(:review).permit(:rating, :comment)
-  end
-end
-```
-
-## API Controller (JSON)
-
-```ruby
-class Api::V1::RestaurantsController < Api::V1::BaseController
-  before_action :authenticate_api_user!
-  before_action :set_restaurant, only: [:show, :update, :destroy]
-
-  # GET /api/v1/restaurants
-  def index
-    @restaurants = Restaurant.all
-    authorize @restaurants
-
-    @restaurants = @restaurants.page(params[:page]).per(params[:per_page] || 20)
-
-    render json: @restaurants, status: :ok
-  end
-
-  # GET /api/v1/restaurants/:id
   def show
-    authorize @restaurant
-    render json: @restaurant, status: :ok
+    @order = current_user.orders.find(params[:id])
+    authorize @order
+  end
+end
+```
+
+## 3. Form controller calling a single-operation service (like `CheckoutsController`)
+
+```ruby
+class CheckoutsController < ApplicationController
+  before_action :require_login
+
+  def new
+    @cart = current_user.cart
+    @cart_items = @cart.cart_items.includes(:product).order(:created_at)
+    @order = current_user.orders.new(shipping_name: current_user.name)
+
+    redirect_to cart_path, alert: "Your cart is empty." if @cart_items.none?
   end
 
-  # POST /api/v1/restaurants
   def create
-    authorize Restaurant
-
-    result = Restaurants::CreateService.call(
-      user: current_api_user,
-      params: restaurant_params
-    )
-
-    if result.success?
-      render json: result.data, status: :created
-    else
-      render json: { errors: result.error }, status: :unprocessable_entity
-    end
-  end
-
-  # PATCH /api/v1/restaurants/:id
-  def update
-    authorize @restaurant
-
-    result = Restaurants::UpdateService.call(
-      restaurant: @restaurant,
-      params: restaurant_params
-    )
-
-    if result.success?
-      render json: result.data, status: :ok
-    else
-      render json: { errors: result.error }, status: :unprocessable_entity
-    end
-  end
-
-  # DELETE /api/v1/restaurants/:id
-  def destroy
-    authorize @restaurant
-
-    @restaurant.destroy!
-    head :no_content
+    order = Orders::CheckoutService.new(user: current_user, shipping_attributes: shipping_params).call
+    redirect_to order_path(order), notice: "Order placed! Thanks for your purchase."
+  rescue Orders::CheckoutService::EmptyCartError => e
+    redirect_to cart_path, alert: e.message
+  rescue Orders::CheckoutService::InsufficientStockError => e
+    render_new_with_error(e.message)
+  rescue ActiveRecord::RecordInvalid => e
+    render_new_with_error(nil, order: e.record)
   end
 
   private
 
-  def set_restaurant
-    @restaurant = Restaurant.find(params[:id])
+  def shipping_params
+    params.require(:order).permit(
+      :shipping_name, :shipping_address_line1, :shipping_address_line2,
+      :shipping_city, :shipping_state, :shipping_zip
+    ).to_h.symbolize_keys
   end
 
-  def restaurant_params
-    params.require(:restaurant).permit(:name, :description, :address, :phone)
-  end
-end
-```
-
-## Error Handling
-
-### Handle Pundit Authorization Errors
-
-```ruby
-# app/controllers/application_controller.rb
-class ApplicationController < ActionController::Base
-  include Pundit::Authorization
-
-  rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
-
-  private
-
-  def user_not_authorized
-    render json: { error: { code: "forbidden", message: "Not authorized", request_id: request.request_id } }, status: :forbidden
-    redirect_to(request.referrer || root_path)
+  def render_new_with_error(message, order: nil)
+    @cart = current_user.cart
+    @cart_items = @cart.cart_items.includes(:product).order(:created_at)
+    @order = order || current_user.orders.new(shipping_params)
+    flash.now[:alert] = message if message
+    render :new, status: :unprocessable_content
   end
 end
 ```
 
-### Handle ActiveRecord Errors
+## 4. Public listing with a Turbo Frame (like `ProductsController#index`)
+
+Guests can browse. Category links and live search target the
+`products_results` Turbo Frame, so only the results region reloads; the same
+URL still renders a full page without JavaScript.
 
 ```ruby
-class RestaurantsController < ApplicationController
-  rescue_from ActiveRecord::RecordNotFound, with: :record_not_found
+def index
+  @categories = Category.order(:name)
+  @selected_category = Category.find_by(slug: params[:category]) if params[:category].present?
+  @query = params[:query].to_s.strip
 
-  private
+  scope = Product.includes(:category)
+  scope = scope.where(category: @selected_category) if @selected_category
+  scope = @query.present? ? scope.search_full_text(@query) : scope.order(:name)
 
-  def record_not_found
-    redirect_to restaurants_path, alert: "Restaurant not found."
-  end
+  @pagy, @products = pagy(scope, limit: PER_PAGE)
 end
 ```
 
-## HTTP Status Codes Reference
+## Error handling
 
-```ruby
-# Success responses
-:ok                    # 200 - Standard success
-:created               # 201 - Resource created
-:no_content            # 204 - Success but no content to return
+| Situation | Response |
+|---|---|
+| Guest on a protected action | `require_login` → redirect to `new_session_path` |
+| Another user's record | `current_user.<assoc>.find` raises `RecordNotFound` → 404 |
+| Pundit denial | `rescue_from Pundit::NotAuthorizedError` → redirect to root with alert |
+| Invalid form / service error on a page | `render :new, status: :unprocessable_content` with `flash.now[:alert]` |
+| Service error on a Turbo Stream action | 200 with a stream that shows the message (toast / `cart_flash`) |
 
-# Redirection
-:found                 # 302 - Temporary redirect (default redirect)
-:see_other             # 303 - After POST, redirect to GET
+## HTTP status codes
 
-# Client errors
-:bad_request           # 400 - Invalid request
-:unauthorized          # 401 - Authentication required
-:forbidden             # 403 - Authenticated but not authorized
-:not_found             # 404 - Resource not found
-:unprocessable_entity  # 422 - Validation errors
-
-# Server errors
-:internal_server_error # 500 - Server error
-```
+| Code | Symbol | When |
+|---|---|---|
+| 200 | `:ok` | Page render, Turbo Stream response |
+| 302/303 | redirect | After a successful form submit, sign in/out |
+| 404 | `:not_found` | Missing or another user's record |
+| 422 | `:unprocessable_content` | Invalid form, insufficient stock at checkout |

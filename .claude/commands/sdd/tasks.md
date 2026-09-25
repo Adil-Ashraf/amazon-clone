@@ -205,4 +205,4 @@ Every task MUST strictly follow this format:
   - When tests are NOT requested: omit the spec tasks but keep the same implementation order
   - If story adds schema: migration → model before service
   - Each phase should be a complete, independently testable increment
-- **Final Phase**: Polish — `bundle exec rubocop -a`, `bin/brakeman --no-pager`, `bundle exec rspec` validation
+- **Final Phase**: Polish — `bin/docker-dev lint -a`, `bin/docker-dev security`, `bin/docker-dev test`, `bin/docker-dev system` validation

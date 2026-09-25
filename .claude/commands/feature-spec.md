@@ -44,7 +44,7 @@ Ask these questions before writing anything:
 
 **UI (IF UI INVOLVED):**
 12. UI elements needed? (Pages / forms / lists / modals / components)
-13. API contract changes? (endpoints, serializer fields, rswag/OpenAPI)
+13. UI contract changes? (routes, Turbo Frame/Stream target ids, views affected)
 14. UI states? (Loading / success / error / empty / disabled)
 
 **Edge Cases (ALWAYS -- MINIMUM 3):**
@@ -90,7 +90,7 @@ Adapt questions based on what's already clear -- skip what's well-documented.
 ### Domain 4: Integration & External Services
 - Does this integrate with external APIs or services?
 - Do we need webhooks or background jobs?
-- Does this expose new API endpoints?
+- Does this add or change routes or pages?
 - What events should trigger notifications?
 
 ### Domain 5: Non-Functional Requirements

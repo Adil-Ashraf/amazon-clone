@@ -27,7 +27,7 @@ class Event < ApplicationRecord
 
   def invalidate_caches
     Rails.cache.delete("featured_events")
-    Rails.cache.delete_matched("dashboard/#{account_id}/*")
+    Rails.cache.delete_matched("order_stats/#{user_id}/*")
   end
 end
 ```
@@ -39,14 +39,14 @@ class Events::UpdateService
   def call(event, params)
     event.update!(params)
     invalidate_related_caches(event)
-    success(event)
+    event
   end
 
   private
 
   def invalidate_related_caches(event)
-    Rails.cache.delete("event_count/#{event.account_id}")
-    DashboardStatsService.new.invalidate(account: event.account)
+    Rails.cache.delete("event_count/#{event.user_id}")
+    Orders::StatsService.new.invalidate(user: event.user)
   end
 end
 ```
@@ -58,8 +58,8 @@ end
 Rails.cache.delete_matched("dashboard/*")
 
 # For Solid Cache / Memory Store, use namespaced keys
-Rails.cache.delete("dashboard/#{account_id}/stats")
-Rails.cache.delete("dashboard/#{account_id}/events")
+Rails.cache.delete("order_stats/#{user_id}/summary")
+Rails.cache.delete("order_stats/#{user_id}/recent")
 ```
 
 ## Touch for Cascade Invalidation (Russian Doll)
@@ -98,14 +98,14 @@ event.vendors_count
 
 ```ruby
 class Event < ApplicationRecord
-  after_commit :update_account_counters
+  after_commit :update_user_counters
 
   private
 
-  def update_account_counters
-    account.update_columns(
-      events_count: account.events.count,
-      active_events_count: account.events.active.count
+  def update_user_counters
+    user.update_columns(
+      events_count: user.events.count,
+      active_events_count: user.events.active.count
     )
   end
 end

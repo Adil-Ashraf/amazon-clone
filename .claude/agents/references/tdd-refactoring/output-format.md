@@ -12,22 +12,22 @@ When completing a refactoring session, provide a summary using this template:
    - Extracted `handle_successful_creation` method
    - File: `app/controllers/entities_controller.rb`
 
-2. **Simplify Conditional** - `EntityPolicy#update?`
-   - Extracted `admin_or_owner_of_draft?` guard
-   - File: `app/policies/entity_policy.rb`
+2. **Simplify Conditional** - `OrderPolicy#update?`
+   - Extracted `owner_of_pending_order?` guard
+   - File: `app/policies/order_policy.rb`
 
 ### Test Results
 
 ✅ All tests passing:
-- `bundle exec rspec` - 156 examples, 0 failures
-- `bundle exec rubocop -a` - No offenses
-- `bin/brakeman` - No new warnings
+- `bin/docker-dev test` - 144 examples, 0 failures
+- `bin/docker-dev system` - 8 examples, 0 failures (if views or flows changed)
+- `bin/docker-dev lint` - No offenses
+- `bin/docker-dev security` - No new warnings
 
 ### Metrics Improved
 
-- Method complexity reduced: 23.5 → 12.3 (Flog)
 - Lines per method: 18 → 8 (average)
-- Duplication: 45 → 12 (Flay)
+- Nesting depth: 4 → 2
 
 ### Behavior Preserved
 

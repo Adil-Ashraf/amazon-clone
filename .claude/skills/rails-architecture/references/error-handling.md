@@ -1,333 +1,151 @@
 # Error Handling Strategies
 
-## Result Object Pattern (Preferred)
+In this app, services raise namespaced errors for domain failures and HTML /
+Turbo Stream controllers rescue them into a flash, a message stream, or a
+422 re-render. Nothing a user can trigger should surface as a 500.
 
-Services return Result objects instead of raising exceptions:
-
-```ruby
-# app/services/result.rb
-class Result
-  attr_reader :data, :error, :code
-
-  def initialize(success:, data: nil, error: nil, code: nil)
-    @success = success
-    @data = data
-    @error = error
-    @code = code
-  end
-
-  def success? = @success
-  def failure? = !@success
-
-  # Pattern matching support (Ruby 3+)
-  def deconstruct_keys(keys)
-    { success: @success, data: @data, error: @error, code: @code }
-  end
-end
-```
-
-## Error Code System
-
-### Define Error Codes
+## Domain Errors Live on the Service
 
 ```ruby
 module Orders
-  class CreateService
-    ERROR_CODES = {
-      empty_cart: :empty_cart,
-      out_of_stock: :out_of_stock,
-      payment_declined: :payment_declined,
-      invalid_coupon: :invalid_coupon,
-      validation_failed: :validation_failed
-    }.freeze
+  class CheckoutService
+    class EmptyCartError < StandardError; end
+    class InsufficientStockError < StandardError; end
 
-    MESSAGES = {
-      empty_cart: "Your cart is empty",
-      out_of_stock: "One or more items are out of stock",
-      payment_declined: "Your payment was declined",
-      invalid_coupon: "The coupon code is invalid",
-      validation_failed: "Please check your order details"
-    }.freeze
+    def call
+      raise EmptyCartError, "Your cart is empty." if @user.cart.cart_items.none?
+      # ...
+      raise InsufficientStockError, "Only #{product.stock} left in stock for \"#{product.name}\"."
+    end
   end
 end
 ```
 
-### Return Typed Errors
+- One class per failure the caller must handle differently.
+- The message is safe to show the user.
+- Raising inside `ActiveRecord::Base.transaction` rolls the whole operation back.
+
+## Controller Layer: Rescue per Action
+
+### Full-page form (HTML)
 
 ```ruby
-def call(params)
-  return error(:empty_cart) if params[:items].empty?
-  return error(:out_of_stock) unless inventory_available?(params[:items])
-
-  order = create_order(params)
-  success(order)
-rescue PaymentGateway::Declined
-  error(:payment_declined)
+# app/controllers/checkouts_controller.rb
+def create
+  order = Orders::CheckoutService.new(user: current_user, shipping_attributes: shipping_params).call
+  redirect_to order_path(order), notice: "Order placed! Thanks for your purchase."
+rescue Orders::CheckoutService::EmptyCartError => e
+  redirect_to cart_path, alert: e.message          # nothing to check out: send them back
+rescue Orders::CheckoutService::InsufficientStockError => e
+  render_new_with_error(e.message)                 # 422, form re-rendered with the message
 rescue ActiveRecord::RecordInvalid => e
-  error(:validation_failed, e.message)
+  render_new_with_error(nil, order: e.record)      # 422, field errors from the record
 end
 
 private
 
-def error(code, details = nil)
-  message = self.class::MESSAGES[code]
-  message = "#{message}: #{details}" if details
-  Result.new(success: false, error: message, code: code)
+def render_new_with_error(message, order: nil)
+  @cart = current_user.cart
+  @cart_items = @cart.cart_items.includes(:product).order(:created_at)
+  @order = order || current_user.orders.new(shipping_params)
+  flash.now[:alert] = message if message
+  render :new, status: :unprocessable_content
 end
 ```
 
-## Controller Error Handling
+### In-place update (Turbo Stream)
 
-### Handle by Error Code
-
-```ruby
-class OrdersController < ApplicationController
-  def create
-    result = Orders::CreateService.new.call(order_params)
-
-    if result.success?
-      redirect_to result.data, notice: t(".success")
-    else
-      handle_error(result)
-    end
-  end
-
-  private
-
-  def handle_error(result)
-    case result.code
-    when :empty_cart
-      redirect_to cart_path, alert: result.error
-    when :out_of_stock
-      flash.now[:alert] = result.error
-      @out_of_stock = true
-      render :new, status: :unprocessable_entity
-    when :payment_declined
-      redirect_to payment_path, alert: result.error
-    else
-      flash.now[:alert] = result.error
-      render :new, status: :unprocessable_entity
-    end
-  end
-end
-```
-
-### Pattern Matching (Ruby 3+)
+The response is still 200: the stream carries the message into the page.
 
 ```ruby
+# app/controllers/cart_items_controller.rb
 def create
-  case Orders::CreateService.new.call(order_params)
-  in { success: true, data: order }
-    redirect_to order, notice: t(".success")
-  in { code: :empty_cart }
-    redirect_to cart_path, alert: t(".empty_cart")
-  in { code: :payment_declined, error: message }
-    redirect_to payment_path, alert: message
-  in { error: message }
-    flash.now[:alert] = message
-    render :new, status: :unprocessable_entity
+  product = Product.find(params[:product_id])
+
+  begin
+    Carts::CartService.new(@cart).add_item(product: product, quantity: quantity)
+    @status_message = "Added to cart."
+    @status_variant = :success
+  rescue Carts::CartService::InsufficientStockError => e
+    @status_message = e.message
+    @status_variant = :error
   end
+
+  load_cart_items
 end
 ```
 
-## API Error Responses
+```erb
+<%# app/views/cart_items/create.turbo_stream.erb %>
+<%= turbo_stream.update "add_to_cart_status" do %>
+  <%= render "shared/toast", variant: @status_variant, message: @status_message %>
+<% end %>
+```
 
-### Consistent Error Format
+## Application-wide Rescues
 
 ```ruby
-# app/controllers/api/base_controller.rb
-module Api
-  class BaseController < ApplicationController
-    private
+# app/controllers/application_controller.rb
+rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 
-    def render_error(result, status: :unprocessable_entity)
-      render json: {
-        error: {
-          code: result.code,
-          message: result.error,
-          details: result.data # Optional additional context
-        }
-      }, status: status
-    end
-
-    def render_success(data, status: :ok)
-      render json: { data: data }, status: status
-    end
-  end
+def user_not_authorized
+  redirect_to root_path, alert: "You are not authorized to do that."
 end
 ```
 
-### HTTP Status Mapping
+`ActiveRecord::RecordNotFound` needs no rescue: Rails renders the 404 page.
+That is what makes `current_user.orders.find(other_users_order_id)` a 404.
 
-```ruby
-ERROR_STATUS_MAP = {
-  not_found: :not_found,
-  unauthorized: :unauthorized,
-  forbidden: :forbidden,
-  validation_failed: :unprocessable_entity,
-  conflict: :conflict,
-  rate_limited: :too_many_requests
-}.freeze
+## Status Mapping
 
-def render_service_result(result)
-  if result.success?
-    render_success(result.data)
-  else
-    status = ERROR_STATUS_MAP.fetch(result.code, :unprocessable_entity)
-    render_error(result, status: status)
-  end
-end
-```
-
-## Exception Handling Layers
-
-### Service Layer (Catch and Wrap)
-
-```ruby
-class ExternalApiService
-  def call(params)
-    response = client.request(params)
-    success(response.data)
-  rescue Faraday::TimeoutError
-    error(:timeout, "External service timed out")
-  rescue Faraday::ConnectionFailed
-    error(:connection_failed, "Could not connect to service")
-  rescue JSON::ParserError
-    error(:invalid_response, "Invalid response from service")
-  end
-end
-```
-
-### Controller Layer (Rescue From)
-
-```ruby
-class ApplicationController < ActionController::Base
-  rescue_from ActiveRecord::RecordNotFound, with: :not_found
-  rescue_from Pundit::NotAuthorizedError, with: :forbidden
-
-  private
-
-  def not_found
-    render json: { error: { code: "not_found", message: "Not found", request_id: request.request_id } },
-           status: :not_found
-  end
-
-  def forbidden
-    render json: { error: { code: "forbidden", message: "Forbidden", request_id: request.request_id } },
-           status: :forbidden
-  end
-end
-```
-
-### Global Error Handler
-
-```ruby
-# config/initializers/error_handler.rb
-Rails.application.config.exceptions_app = ->(env) {
-  ErrorsController.action(:show).call(env)
-}
-
-# app/controllers/errors_controller.rb
-class ErrorsController < ApplicationController
-  skip_before_action :authenticate_user!
-
-  def show
-    @status = request.env["PATH_INFO"].delete("/").to_i
-    render status: @status
-  end
-end
-```
+| Situation | Response |
+|---|---|
+| Guest on a protected page | redirect to `new_session_path` (`require_login`) |
+| Missing or another user's record | 404 (`RecordNotFound`) |
+| Pundit denial | redirect to root with alert |
+| Invalid form / domain error on a page | `render :new, status: :unprocessable_content` |
+| Domain error on a Turbo Stream action | 200 with a message stream |
+| Out-of-range or garbage `?page=` | redirect to a valid page |
 
 ## Validation Errors
 
-### Model Validations to Result
+Re-render the form with the invalid record so the view shows its errors
+through `app/views/shared/_error_messages.html.erb`:
 
 ```ruby
-def call(params)
-  record = Model.new(params)
-
-  if record.save
-    success(record)
-  else
-    validation_error(record)
-  end
-end
-
-def validation_error(record)
-  Result.new(
-    success: false,
-    error: record.errors.full_messages.join(", "),
-    code: :validation_failed,
-    data: record.errors.to_hash
-  )
+@user = User.new(registration_params)
+if @user.save
+  # ...
+else
+  render :new, status: :unprocessable_content
 end
 ```
 
-### Render Validation Errors
+## When a Result Object Helps
 
-Return field-level errors inside the standard error envelope. The frontend
-maps them onto its own form state — there is no server-rendered form here.
+Raise for failures. Return a `Data.define` result only when a *successful*
+call has several parts the caller needs (e.g. items added plus products
+skipped):
 
 ```ruby
-if result.failure? && result.code == :validation_failed
-  render json: {
-    error: {
-      code: "validation_failed",
-      message: "The submitted data is invalid.",
-      request_id: request.request_id,
-      details: result.data # Hash of field => [messages]
-    }
-  }, status: :unprocessable_entity
-end
+Result = Data.define(:cart_items, :skipped_products)
 ```
 
 ## Logging Errors
 
 ```ruby
-class ApplicationService
-  private
-
-  def error(code, message = nil, exception: nil)
-    log_error(code, message, exception)
-    Result.new(success: false, error: message || default_message(code), code: code)
-  end
-
-  def log_error(code, message, exception)
-    Rails.logger.error({
-      service: self.class.name,
-      error_code: code,
-      message: message,
-      exception: exception&.class&.name,
-      backtrace: exception&.backtrace&.first(5)
-    }.to_json)
-  end
-end
+rescue Orders::CheckoutService::InsufficientStockError => e
+  Rails.logger.info("checkout.insufficient_stock user_id=#{current_user.id} #{e.message}")
+  render_new_with_error(e.message)
 ```
 
-## Error Tracking Integration
-
-```ruby
-# With Sentry/Rollbar
-def error(code, message = nil, exception: nil)
-  if exception && should_report?(code)
-    Sentry.capture_exception(exception, extra: { code: code, message: message })
-  end
-
-  Result.new(success: false, error: message, code: code)
-end
-
-def should_report?(code)
-  # Don't report expected errors
-  ![:validation_failed, :not_found, :unauthorized].include?(code)
-end
-```
+Log expected domain failures at `info`; let unexpected exceptions propagate
+so they reach the error page and the logs at `error`.
 
 ## Checklist
 
-- [ ] Services return Result objects
-- [ ] Error codes are typed symbols
-- [ ] Controllers handle errors by code
-- [ ] API responses have consistent format
-- [ ] Unexpected errors logged with context
-- [ ] Sensitive data not exposed in errors
-- [ ] User-facing messages use I18n
+- [ ] Each domain failure is a namespaced error class on the service
+- [ ] Every error class is rescued by each controller that calls the service
+- [ ] Full-page failures re-render with 422; Turbo Stream failures show a message stream
+- [ ] Another user's record is a 404, never a redirect that confirms it exists
+- [ ] Request specs cover each rescued error (status and DB unchanged)

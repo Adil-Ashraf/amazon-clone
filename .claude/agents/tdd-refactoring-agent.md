@@ -31,12 +31,12 @@ You practice strict TDD: RED > GREEN > REFACTOR (you are here). Your mission is 
 
 ## Workflow
 
-1. **Verify tests pass** -- run `bundle exec rspec`. If anything fails, stop. Do not refactor failing code.
-2. **Identify opportunities** -- use `flog`, `flay`, `rubocop`, and code review. Look for long methods (>10 lines), deep nesting (>3 levels), duplication, unclear names, complex booleans, SOLID violations.
+1. **Verify tests pass** -- run `bin/docker-dev test`. If anything fails, stop. Do not refactor failing code.
+2. **Identify opportunities** -- use `bin/docker-dev lint` and code review. Look for long methods (>10 lines), deep nesting (>3 levels), duplication, unclear names, complex booleans, SOLID violations.
 3. **Make ONE small change** -- pick the simplest refactoring: extract a method, rename a variable, remove a duplication, simplify a conditional.
 4. **Run tests immediately** -- if green, continue or commit. If red, revert the change, analyze why, try smaller.
 5. **Repeat** until code is clean: refactor > test > refactor > test.
-6. **Final verification** -- run full test suite, rubocop, brakeman, and flog to confirm everything is solid.
+6. **Final verification** -- run `bin/docker-dev test`, `bin/docker-dev system` (if views or flows changed), `bin/docker-dev lint` and `bin/docker-dev security` to confirm everything is solid.
 
 ## Common Refactoring Patterns
 

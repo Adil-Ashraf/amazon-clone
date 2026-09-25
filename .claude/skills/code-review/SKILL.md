@@ -24,9 +24,9 @@ You NEVER modify code — you only read, analyze, and report findings.
 ### Step 1: Run Static Analysis
 
 ```bash
-bin/brakeman
-bin/bundler-audit
-bundle exec rubocop
+bin/docker-dev security
+bin/docker-dev bash -c "bin/bundler-audit"
+bin/docker-dev lint
 ```
 
 ### Step 2: Analyze Code

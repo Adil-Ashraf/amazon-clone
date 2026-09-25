@@ -5,15 +5,15 @@
 ```ruby
 # app/queries/[name]_query.rb
 class NameQuery
-  attr_reader :account
+  attr_reader :user
 
-  def initialize(account:)
-    @account = account
+  def initialize(user:)
+    @user = user
   end
 
   # @return [ActiveRecord::Relation<Model>]
   def call
-    account.models
+    user.models
       .where(conditions)
       .order(created_at: :desc)
   end
@@ -29,14 +29,14 @@ Return filtered ActiveRecord relations:
 ```ruby
 # app/queries/active_events_query.rb
 class ActiveEventsQuery
-  attr_reader :account
+  attr_reader :user
 
-  def initialize(account:)
-    @account = account
+  def initialize(user:)
+    @user = user
   end
 
   def call(date_range: nil)
-    scope = account.events.where(status: :active)
+    scope = user.events.where(status: :active)
     scope = scope.where(event_date: date_range) if date_range
     scope.includes(:venue, :vendors).order(event_date: :asc)
   end
@@ -50,10 +50,10 @@ Return computed statistics:
 ```ruby
 # app/queries/revenue_stats_query.rb
 class RevenueStatsQuery
-  attr_reader :account
+  attr_reader :user
 
-  def initialize(account:)
-    @account = account
+  def initialize(user:)
+    @user = user
   end
 
   def call(period: :month)
@@ -68,7 +68,7 @@ class RevenueStatsQuery
   private
 
   def total_revenue
-    account.orders.completed.sum(:total_cents)
+    user.orders.completed.sum(:total_cents)
   end
 
   def revenue_by_period(period)
@@ -78,13 +78,13 @@ class RevenueStatsQuery
     when :month then "DATE_TRUNC('month', created_at)"
     end
 
-    account.orders.completed
+    user.orders.completed
       .group(Arel.sql(group_clause))
       .sum(:total_cents)
   end
 
   def revenue_by_category
-    account.orders.completed
+    user.orders.completed
       .joins(line_items: :product)
       .group("products.category")
       .sum(:total_cents)
@@ -99,30 +99,29 @@ Multiple related metrics:
 ```ruby
 # app/queries/dashboard_stats_query.rb
 class DashboardStatsQuery
-  attr_reader :user, :account
+  attr_reader :user
 
   def initialize(user:)
     @user = user
-    @account = user.account
   end
 
   def upcoming_events(limit: 5)
-    account.events
+    user.events
       .where("event_date >= ?", Date.current)
       .order(event_date: :asc)
       .limit(limit)
   end
 
   def pending_tasks_count
-    account.tasks.pending.count
+    user.tasks.pending.count
   end
 
   def leads_by_status
-    account.leads.group(:status).count
+    user.leads.group(:status).count
   end
 
   def recent_activity(limit: 10)
-    account.activities
+    user.activities
       .includes(:user, :trackable)
       .order(created_at: :desc)
       .limit(limit)
@@ -137,14 +136,14 @@ Full-text search with filters:
 ```ruby
 # app/queries/vendor_search_query.rb
 class VendorSearchQuery
-  attr_reader :account
+  attr_reader :user
 
-  def initialize(account:)
-    @account = account
+  def initialize(user:)
+    @user = user
   end
 
   def call(term:, filters: {})
-    scope = account.vendors
+    scope = user.vendors
 
     scope = apply_search(scope, term) if term.present?
     scope = apply_filters(scope, filters)
@@ -191,14 +190,14 @@ Complex data for exports:
 ```ruby
 # app/queries/event_report_query.rb
 class EventReportQuery
-  attr_reader :account
+  attr_reader :user
 
-  def initialize(account:)
-    @account = account
+  def initialize(user:)
+    @user = user
   end
 
   def call(date_range:)
-    account.events
+    user.events
       .where(event_date: date_range)
       .includes(:venue, :vendors, :attendees)
       .select(
@@ -219,7 +218,7 @@ end
 
 ```ruby
 def call
-  account.events
+  user.events
     .includes(:venue)                    # Belongs-to
     .includes(:vendors)                  # Has-many through
     .includes(attendees: :user)          # Nested
@@ -232,7 +231,7 @@ end
 
 ```ruby
 def process_all
-  account.events.find_each(batch_size: 100) do |event|
+  user.events.find_each(batch_size: 100) do |event|
     yield event
   end
 end
@@ -243,27 +242,27 @@ end
 ```ruby
 def call
   # Use subquery instead of pluck for large datasets
-  active_vendor_ids = account.vendors.active.select(:id)
+  active_vendor_ids = user.vendors.active.select(:id)
 
-  account.events
+  user.events
     .where(vendor_id: active_vendor_ids)
     .order(created_at: :desc)
 end
 ```
 
-## Multi-Tenancy Patterns
+## Per-User Isolation Patterns
 
-### Always Scope Through Account
+### Always Scope Through the User
 
 ```ruby
 # GOOD
 def call
-  account.events.where(status: :active)
+  user.events.where(status: :active)
 end
 
-# BAD - Security risk!
+# BAD - the user filter is easy to drop in a later edit
 def call
-  Event.where(account_id: account.id, status: :active)
+  Event.where(user_id: user.id, status: :active)
 end
 ```
 
@@ -271,16 +270,16 @@ end
 
 ```ruby
 RSpec.describe ActiveEventsQuery do
-  let(:account) { create(:account) }
-  let(:other_account) { create(:account) }
+  let(:user) { create(:user) }
+  let(:other_user) { create(:user) }
 
-  let!(:our_event) { create(:event, account: account) }
-  let!(:their_event) { create(:event, account: other_account) }
+  let!(:our_event) { create(:event, user: user) }
+  let!(:their_event) { create(:event, user: other_user) }
 
-  it "only returns events for the account" do
-    result = described_class.new(account: account).call
-    expect(result).to include(our_event)
-    expect(result).not_to include(their_event)
+  let(:result) { described_class.new(user: user).call }
+
+  it "only returns events for the user" do
+    expect(result).to include(our_event).and exclude(their_event)
   end
 end
 ```
@@ -291,18 +290,18 @@ end
 
 ```ruby
 # Queries return relations, enabling chaining
-events = ActiveEventsQuery.new(account: account).call
+events = ActiveEventsQuery.new(user: user).call
 upcoming = events.where("event_date > ?", Date.current)
-paginated = upcoming.page(params[:page]).per(20)
+@pagy, @events = pagy(upcoming, limit: 20) # in the controller
 ```
 
 ### Query Composition
 
 ```ruby
 class ComplexReportQuery
-  def initialize(account:)
-    @events_query = ActiveEventsQuery.new(account: account)
-    @revenue_query = RevenueStatsQuery.new(account: account)
+  def initialize(user:)
+    @events_query = ActiveEventsQuery.new(user: user)
+    @revenue_query = RevenueStatsQuery.new(user: user)
   end
 
   def call(date_range:)
@@ -319,7 +318,7 @@ end
 ```ruby
 class EventsController < ApplicationController
   def index
-    @events = ActiveEventsQuery.new(account: current_account)
+    @events = ActiveEventsQuery.new(user: current_user)
       .call
       .page(params[:page])
   end
@@ -332,10 +331,10 @@ end
 
 ## Checklist
 
-- [ ] Constructor accepts `account:` or `user:`
-- [ ] Always scoped through account (multi-tenant)
+- [ ] Constructor accepts `user:` when results are per user
+- [ ] Always scoped through the user's associations (per-user isolation)
 - [ ] Return type documented (`@return`)
 - [ ] Uses `.includes()` to prevent N+1
 - [ ] Search terms sanitized
-- [ ] Spec tests tenant isolation
+- [ ] Spec tests per-user isolation
 - [ ] Complex queries explain their purpose

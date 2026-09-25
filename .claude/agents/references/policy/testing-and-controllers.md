@@ -1,290 +1,115 @@
 # Pundit Testing and Controller Usage Reference
 
-## Pundit Matchers Setup
+The project does not use the `pundit-matchers` gem: call the predicates
+directly. Cover **guest**, **owner** and **another user** for every predicate,
+and assert the 404 for another user's record in the request spec.
+
+## Complete Policy Test (OrderPolicy)
 
 ```ruby
-# spec/support/pundit_matchers.rb
-require "pundit/rspec"
-
-RSpec.configure do |config|
-  config.include Pundit::RSpec::Matchers, type: :policy
-end
-```
-
-## Complete Policy Test (EntityPolicy)
-
-```ruby
-# spec/policies/entity_policy_spec.rb
+# spec/policies/order_policy_spec.rb
 require "rails_helper"
 
-RSpec.describe EntityPolicy, type: :policy do
-  subject(:policy) { described_class.new(user, entity) }
+RSpec.describe OrderPolicy, type: :policy do
+  subject(:policy) { described_class.new(user, order) }
 
-  let(:entity) { create(:entity, user: owner) }
-  let(:owner) { create(:user) }
+  let(:order) { build(:order) }
 
-  context "unauthenticated visitor" do
+  context "as a guest" do
     let(:user) { nil }
 
-    it { is_expected.to permit_action(:index) }
-    it { is_expected.to permit_action(:show) }
-    it { is_expected.to forbid_action(:create) }
-    it { is_expected.to forbid_action(:new) }
-    it { is_expected.to forbid_action(:update) }
-    it { is_expected.to forbid_action(:edit) }
-    it { is_expected.to forbid_action(:destroy) }
+    it { expect(policy.show?).to be(false) }
   end
 
-  context "authenticated user (non-owner)" do
-    let(:user) { create(:user) }
+  context "as the owner" do
+    let(:user) { order.user }
 
-    it { is_expected.to permit_action(:index) }
-    it { is_expected.to permit_action(:show) }
-    it { is_expected.to permit_action(:create) }
-    it { is_expected.to permit_action(:new) }
-    it { is_expected.to forbid_action(:update) }
-    it { is_expected.to forbid_action(:edit) }
-    it { is_expected.to forbid_action(:destroy) }
+    it { expect(policy.show?).to be(true) }
   end
 
-  context "entity owner" do
-    let(:user) { owner }
+  context "as another user" do
+    let(:user) { build(:user) }
 
-    it { is_expected.to permit_actions(:index, :show, :create, :new, :update, :edit, :destroy) }
+    it { expect(policy.show?).to be(false) }
   end
+end
+```
 
-  describe "Scope" do
-    subject(:scope) { described_class::Scope.new(user, Entity.all).resolve }
+## Test with Several Predicates (CartPolicy)
 
-    let!(:published_entity) { create(:entity, published: true) }
-    let!(:unpublished_entity) { create(:entity, published: false) }
+```ruby
+# spec/policies/cart_policy_spec.rb
+RSpec.describe CartPolicy, type: :policy do
+  subject(:policy) { described_class.new(user, cart) }
 
-    context "visitor" do
-      let(:user) { nil }
+  let(:cart) { build(:cart) }
 
-      it "returns only published entities" do
-        expect(scope).to include(published_entity)
-        expect(scope).not_to include(unpublished_entity)
+  %i[show? update?].each do |predicate|
+    describe "##{predicate}" do
+      context "as the owner" do
+        let(:user) { cart.user }
+
+        it { expect(policy.public_send(predicate)).to be(true) }
       end
-    end
-  end
 
-  describe "#permitted_attributes" do
-    context "owner" do
-      let(:user) { owner }
+      context "as another user" do
+        let(:user) { build(:user) }
 
-      it "allows all attributes" do
-        expect(policy.permitted_attributes).to include(
-          :name, :description, :address, :phone, :email
-        )
-      end
-    end
-
-    context "non-owner" do
-      let(:user) { create(:user) }
-
-      it "allows no attributes" do
-        expect(policy.permitted_attributes).to be_empty
+        it { expect(policy.public_send(predicate)).to be(false) }
       end
     end
   end
 end
 ```
 
-## Test with Roles (SubmissionPolicy)
+## Test with State-Dependent Rules
 
 ```ruby
-# spec/policies/submission_policy_spec.rb
-require "rails_helper"
+RSpec.describe OrderPolicy, type: :policy do
+  subject(:policy) { described_class.new(order.user, order) }
 
-RSpec.describe SubmissionPolicy, type: :policy do
-  subject(:policy) { described_class.new(user, submission) }
+  context "when the order is pending" do
+    let(:order) { build(:order, status: :pending) }
 
-  let(:author) { create(:user) }
-  let(:entity_owner) { create(:user) }
-  let(:admin) { create(:user, role: :admin) }
-  let(:entity) { create(:entity, user: entity_owner) }
-  let(:submission) { create(:submission, user: author, entity: entity) }
-
-  describe "#destroy?" do
-    context "submission author" do
-      let(:user) { author }
-      it { is_expected.to permit_action(:destroy) }
-    end
-
-    context "entity owner" do
-      let(:user) { entity_owner }
-      it { is_expected.to permit_action(:destroy) }
-    end
-
-    context "administrator" do
-      let(:user) { admin }
-      it { is_expected.to permit_action(:destroy) }
-    end
-
-    context "regular user" do
-      let(:user) { create(:user) }
-      it { is_expected.to forbid_action(:destroy) }
-    end
+    it { expect(policy.cancel?).to be(true) }
   end
 
-  describe "#moderate?" do
-    context "entity owner" do
-      let(:user) { entity_owner }
-      it { is_expected.to permit_action(:moderate) }
-    end
+  context "when the order is paid" do
+    let(:order) { build(:order, status: :paid) }
 
-    context "administrator" do
-      let(:user) { admin }
-      it { is_expected.to permit_action(:moderate) }
-    end
-
-    context "submission author" do
-      let(:user) { author }
-      it { is_expected.to forbid_action(:moderate) }
-    end
-  end
-
-  describe "#create?" do
-    let(:user) { create(:user) }
-    let(:submission) { build(:submission, user: user, entity: entity) }
-
-    context "first submission for this entity" do
-      it { is_expected.to permit_action(:create) }
-    end
-
-    context "already submitted" do
-      before { create(:submission, user: user, entity: entity) }
-      it { is_expected.to forbid_action(:create) }
-    end
-  end
-end
-```
-
-## Test with Complex Conditions (BookingPolicy)
-
-```ruby
-# spec/policies/booking_policy_spec.rb
-require "rails_helper"
-
-RSpec.describe BookingPolicy, type: :policy do
-  subject(:policy) { described_class.new(user, booking) }
-
-  let(:customer) { create(:user) }
-  let(:entity_owner) { create(:user) }
-  let(:entity) { create(:entity, user: entity_owner) }
-
-  describe "#cancel?" do
-    let(:user) { customer }
-
-    context "booking in the future (>4h)" do
-      let(:booking) do
-        create(:booking,
-               user: customer,
-               entity: entity,
-               booking_datetime: 6.hours.from_now)
-      end
-
-      it { is_expected.to permit_action(:cancel) }
-    end
-
-    context "booking in less than 4h" do
-      let(:booking) do
-        create(:booking,
-               user: customer,
-               entity: entity,
-               booking_datetime: 2.hours.from_now)
-      end
-
-      it { is_expected.to forbid_action(:cancel) }
-    end
-
-    context "booking in the past" do
-      let(:booking) do
-        create(:booking,
-               user: customer,
-               entity: entity,
-               booking_datetime: 2.hours.ago)
-      end
-
-      it { is_expected.to forbid_action(:cancel) }
-    end
-
-    context "entity owner (regardless of time)" do
-      let(:user) { entity_owner }
-      let(:booking) do
-        create(:booking,
-               user: customer,
-               entity: entity,
-               booking_datetime: 1.hour.from_now)
-      end
-
-      it { is_expected.to permit_action(:cancel) }
-    end
+    it { expect(policy.cancel?).to be(false) }
   end
 end
 ```
 
 ## Controller with Authorization
 
+Scope through `current_user` first, then authorize:
+
 ```ruby
-# app/controllers/entities_controller.rb
-class EntitiesController < ApplicationController
-  before_action :set_entity, only: [:show, :edit, :update, :destroy]
+# app/controllers/orders_controller.rb
+class OrdersController < ApplicationController
+  before_action :require_login
 
   def index
-    @entities = policy_scope(Entity)
+    @orders = current_user.orders.order(created_at: :desc)
   end
 
   def show
-    authorize @entity
+    @order = current_user.orders.find(params[:id]) # another user's order → 404
+    authorize @order
   end
+end
+```
 
-  def new
-    @entity = Entity.new
-    authorize @entity
-  end
+```ruby
+# app/controllers/cart_items_controller.rb
+before_action :require_login
+before_action :set_cart
 
-  def create
-    @entity = current_user.entities.build(entity_params)
-    authorize @entity
-
-    if @entity.save
-      redirect_to @entity, notice: "Entity created"
-    else
-      render :new, status: :unprocessable_entity
-    end
-  end
-
-  def edit
-    authorize @entity
-  end
-
-  def update
-    authorize @entity
-
-    if @entity.update(permitted_attributes(@entity))
-      redirect_to @entity, notice: "Entity updated"
-    else
-      render :edit, status: :unprocessable_entity
-    end
-  end
-
-  def destroy
-    authorize @entity
-    @entity.destroy
-    redirect_to entities_path, notice: "Entity deleted"
-  end
-
-  private
-
-  def set_entity
-    @entity = Entity.find(params[:id])
-  end
-
-  def entity_params
-    params.require(:entity).permit(policy(@entity || Entity).permitted_attributes)
-  end
+def set_cart
+  @cart = current_user.cart
+  authorize @cart, :update?
 end
 ```
 
@@ -292,39 +117,38 @@ end
 
 ```ruby
 # app/controllers/application_controller.rb
-class ApplicationController < ActionController::Base
-  include Pundit::Authorization
+include Pundit::Authorization
 
-  rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
+rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
 
-  private
+def pundit_user
+  current_user
+end
 
-  def user_not_authorized
-    render json: { error: { code: "forbidden", message: "You are not authorized to perform this action.", request_id: request.request_id } },
-           status: :forbidden
-  end
+def user_not_authorized
+  redirect_to root_path, alert: "You are not authorized to do that."
 end
 ```
 
-## Custom Actions in Controllers
+## Request Spec for Authorization
 
 ```ruby
-# app/controllers/submissions_controller.rb
-class SubmissionsController < ApplicationController
-  def moderate
-    @submission = Submission.find(params[:id])
-    authorize @submission, :moderate?
-
-    @submission.update(status: params[:status])
-    redirect_to @submission.entity
+context "for another user's order" do
+  before do
+    sign_in_as(user)
+    get order_path(create(:order))
   end
 
-  def flag
-    @submission = Submission.find(params[:id])
-    authorize @submission, :flag?
-
-    @submission.flags.create(user: current_user, reason: params[:reason])
-    redirect_back(fallback_location: @submission.entity)
-  end
+  it { expect(response).to have_http_status(:not_found) }
 end
+```
+
+## Checks in Views
+
+Hide actions the viewer can't perform; the controller still enforces them.
+
+```erb
+<% if policy(@order).cancel? %>
+  <%= button_to "Cancel order", cancel_order_path(@order), method: :patch %>
+<% end %>
 ```

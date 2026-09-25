@@ -29,7 +29,7 @@ The 2025 Rails consensus has evolved beyond "Fat Models" to **Skinny Everything*
 | Controller action exceeds ~10 lines of business logic | Extract to service object |
 | Model exceeds ~100 lines | Extract business logic to services, complex queries to query objects |
 | Query joins multiple tables or has conditional clauses | Extract to query object |
-| Display formatting logic in model | Extract to serializer |
+| Display formatting logic in model | Extract to a helper or view partial |
 | Shared behavior across 2+ models (narrow, simple) | Extract to concern |
 | 5+ concrete implementations with identical structure | Extract base class |
 | One-off operation | **Don't extract. Inline is fine.** |
@@ -52,8 +52,10 @@ Is it shared behavior?
   └── Operation on the model (checkout, import, sync) → Service object
 
 Is it display logic?
-  ├── Shaping one model's JSON → Serializer
-  └── Simple helper method → Keep in helper (use sparingly)
+  ├── Markup reused across views → Partial in app/views/shared/ (or next to its views)
+  ├── Partial page update → Turbo Stream template (*.turbo_stream.erb)
+  ├── Client-side behavior → Stimulus controller
+  └── Formatting a value (prices, dates) → Helper (format_price_cents)
 
 Is it validation?
   ├── Single model, standard rules → Model validation
@@ -98,9 +100,9 @@ Before extracting, verify you're not creating:
 - [ ] A service that wraps a single `model.update!` call (Service Graveyard)
 - [ ] A base class for only 2 services (Premature Abstraction)
 - [ ] A concern with multiple responsibilities (Kitchen Sink Concern)
-- [ ] Response shaping that should be a serializer
+- [ ] Markup or formatting that belongs in a partial or helper, not a model
 - [ ] An abstraction for a hypothetical future need (YAGNI violation)
 
 ## Reference
 
-See @docs/rails-development-principles.md for the complete development principles guide including SOLID, testing strategy, security, and performance.
+See `.claude/rules/principles.md` and `.claude/rules/anti-patterns.md` for the development principles, and `.claude/rules/testing.md` for the testing strategy.

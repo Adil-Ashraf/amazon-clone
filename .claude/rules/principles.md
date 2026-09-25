@@ -6,7 +6,7 @@
 - **SRP**: Each class has one reason to change. A model handles persistence, a service handles business logic, a controller handles HTTP orchestration.
 - **Dependency Inversion**: Inject collaborators via constructor for testability. High-level business logic should not depend on low-level modules.
 - **Composition over inheritance**: Favor modules, concerns, and delegation over deep class hierarchies.
-- **Skinny Everything**: Controllers orchestrate (delegate to services, render responses). Models persist (validations, associations, scopes, simple predicates). Services contain business logic. Serializers shape JSON. There is no view layer.
+- **Skinny Everything**: Controllers orchestrate (delegate to services, render responses). Models persist (validations, associations, scopes, simple predicates). Services contain business logic. Views render HTML via ERB partials, Turbo Streams update the page in place, and Stimulus adds behavior.
 - **Callbacks**: Only for data normalization (`before_validation :strip_whitespace`, `before_save :downcase_email`). Side effects (emails, API calls, job enqueuing, creating related records) always belong in services, never in callbacks.
 - **No premature abstraction**: Don't create base classes, helpers, or utilities for one-time operations. Extract only when you have 5+ concrete implementations with identical structure.
 - **Explicit over implicit**: Clear code wins over magic. Explicit service calls over hidden callbacks. Named methods over metaprogramming.

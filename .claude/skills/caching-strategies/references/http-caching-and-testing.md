@@ -4,22 +4,16 @@
 
 ### Conditional GET (ETag/Last-Modified)
 
+Public, user-independent pages are the safe candidates:
+
 ```ruby
-class EventsController < ApplicationController
+class ProductsController < ApplicationController
   def show
-    @event = Event.find(params[:id])
+    @product = Product.includes(:category).find(params[:id])
 
-    # Returns 304 Not Modified if unchanged
-    render json: { data: EventSerializer.new(event:).as_json } if stale?(event)
-  end
-
-  def index
-    @events = current_account.events.recent
-
-    # With custom ETag
-    if stale?(etag: @events, last_modified: @events.maximum(:updated_at))
-      render :index
-    end
+    # Returns 304 Not Modified if unchanged. The layout shows the signed-in
+    # user's cart count, so include the user in the ETag.
+    fresh_when etag: [ @product, current_user&.cart&.updated_at ], last_modified: @product.updated_at
   end
 end
 ```
@@ -27,27 +21,24 @@ end
 ### Cache-Control Headers
 
 ```ruby
-class Api::EventsController < Api::BaseController
+class ProductsController < ApplicationController
   def show
-    @event = Event.find(params[:id])
+    @product = Product.find(params[:id])
 
-    # Public caching (CDN can cache)
-    expires_in 1.hour, public: true
-
-    # Private caching (browser only)
-    expires_in 15.minutes, private: true
-
-    render json: @event
+    # Private caching (browser only) -- the page contains per-user chrome
+    expires_in 5.minutes, private: true
   end
 end
 ```
+
+Never mark pages with per-user content (cart, orders, checkout) as `public`.
 
 ## Testing Caching
 
 ### Spec Configuration
 
 ```ruby
-# spec/rails_helper.rb
+# spec/support/caching.rb
 RSpec.configure do |config|
   config.around(:each, :caching) do |example|
     caching = ActionController::Base.perform_caching
@@ -62,20 +53,23 @@ end
 ### Testing Cached Views
 
 ```ruby
-RSpec.describe "Events", type: :request, :caching do
-  it "caches the event show page" do
-    event = create(:event)
+RSpec.describe "Products", type: :request, caching: true do
+  let(:product) { create(:product) }
 
-    # First request - cache miss
-    get event_path(event)
-    expect(response.body).to include(event.name)
+  def view_product
+    get product_path(product)
+  end
 
-    # Update event
-    event.update!(name: "New Name")
+  context "after the product changes" do
+    before do
+      view_product                             # prime the fragment cache
+      product.update!(price_cents: product.price_cents + 100)
+      view_product
+    end
 
-    # Second request - should show new name (cache invalidated)
-    get event_path(event)
-    expect(response.body).to include("New Name")
+    it "renders the new price" do
+      expect(response.body).to include(ApplicationController.helpers.format_price_cents(product.price_cents))
+    end
   end
 end
 ```
@@ -83,21 +77,17 @@ end
 ### Testing Cache Invalidation
 
 ```ruby
-RSpec.describe DashboardStatsService do
-  describe "#invalidate" do
-    it "clears the cache" do
-      account = create(:account)
-      service = described_class.new
+RSpec.describe OrderStatsService do
+  let(:user) { create(:user) }
+  let(:service) { described_class.new }
 
-      # Prime cache
-      service.call(account: account)
+  before do
+    service.call(user: user)       # prime
+    service.invalidate(user: user)
+  end
 
-      # Invalidate
-      service.invalidate(account: account)
-
-      # Verify cache miss
-      expect(Rails.cache.exist?("dashboard_stats/#{account.id}")).to be false
-    end
+  it "clears the cache" do
+    expect(Rails.cache.exist?("order_stats/#{user.id}")).to be(false)
   end
 end
 ```

@@ -1,7 +1,7 @@
 # Active Storage: Image Variants
 
-API-only: there are no forms or `image_tag` helpers here. Variants are
-generated server-side and exposed to the frontend as URLs through a serializer.
+Variants are defined on the model and rendered in ERB with `image_tag`;
+uploads go through ordinary `form_with` file fields.
 
 ## Defining Variants
 
@@ -31,53 +31,39 @@ resize_to_cover: [300, 300]
 resize_to_limit: [300, 300], format: :webp, saver: { quality: 80 }
 ```
 
-## Exposing Variants Through a Serializer
+## Displaying Variants in Views
 
-Return URLs, never the attachment object. Use `url_for`/`rails_representation_url`
-with an explicit host so the separate frontend gets an absolute URL.
-
-```ruby
-class UserSerializer
-  def initialize(user:)
-    @user = user
-  end
-
-  def as_json
-    {
-      id: user.uuid,
-      name: user.name,
-      avatar: avatar_urls
-    }
-  end
-
-  private
-
-  attr_reader :user
-
-  def avatar_urls
-    return nil unless user.avatar.attached?
-
-    {
-      thumb: variant_url(:thumb),
-      medium: variant_url(:medium)
-    }
-  end
-
-  def variant_url(name)
-    Rails.application.routes.url_helpers.rails_representation_url(
-      user.avatar.variant(name).processed,
-      only_path: false
-    )
-  end
-end
+```erb
+<%# app/views/users/_avatar.html.erb %>
+<% if user.avatar.attached? %>
+  <%= image_tag user.avatar.variant(:thumb), alt: user.name, width: 100, height: 100, loading: "lazy" %>
+<% else %>
+  <%= render "shared/avatar_placeholder", user: user %>
+<% end %>
 ```
+
+- Always give meaningful `alt` text and explicit `width`/`height` to avoid layout shift.
+- `loading: "lazy"` for images below the fold.
+
+## Upload Forms
+
+```erb
+<%= form_with model: @user do |f| %>
+  <%= f.label :avatar %>
+  <%= f.file_field :avatar, accept: "image/png,image/jpeg,image/webp", direct_upload: true %>
+  <%= f.submit "Save" %>
+<% end %>
+```
+
+`direct_upload: true` needs `@rails/activestorage` pinned via
+`bin/importmap pin @rails/activestorage` and started in `application.js`.
 
 ## Notes
 
 - Generating a variant is lazy and can be slow on first request. For list
-  endpoints, pre-process variants in a background job rather than blocking the
+  pages, pre-process variants in a background job rather than blocking the
   response.
-- Preload `avatar_attachment: :blob` in the query object when serializing a
+- Preload `avatar_attachment: :blob` (`with_attached_avatar`) when rendering a
   collection, or every row triggers its own lookup.
-- Signed blob URLs expire. Confirm the expiry window matches what the frontend
-  caches.
+- Signed blob URLs expire. Don't cache pages that embed them for longer than
+  the expiry window.

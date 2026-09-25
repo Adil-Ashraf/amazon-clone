@@ -37,8 +37,8 @@ You **MUST** consider the user input before proceeding (if not empty).
      - Halt execution and suggest next steps for manual resolution
 
 5. **Final validation**:
-   - Run `bundle exec rspec` and report results
-   - Run `bundle exec rubocop -a` and report results
+   - Run `bin/docker-dev test` (and `bin/docker-dev system` if views or flows changed) and report results
+   - Run `bin/docker-dev lint -a` and report results
    - If either fails: attempt to fix the issues and re-run (max 2 attempts)
    - If still failing after retries: report the remaining issues for manual resolution
 

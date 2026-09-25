@@ -90,14 +90,18 @@ valuable signal toward unkillable.
 
 ### 1. Run Mutant
 
+Mutant is not installed in this project yet. Add `mutant-rspec` to the
+`:test` group in the Gemfile (with the user's approval), then run it inside
+the dev container:
+
 ```bash
-bundle exec mutant run --fail-fast
+bin/docker-dev bash -c "bundle exec mutant run --fail-fast"
 ```
 
 When the subject is known, scope the run to avoid testing unrelated subjects:
 
 ```bash
-bundle exec mutant run --fail-fast 'Entities::CreateService#call'
+bin/docker-dev bash -c "bundle exec mutant run --fail-fast 'Orders::CheckoutService#call'"
 ```
 
 If the command succeeds, coverage is 100% — done.
@@ -124,7 +128,7 @@ Re-run mutant (step 1) until 100%. If the same mutation survives after
 2 attempts, evaluate whether it is unkillable.
 
 ```bash
-bundle exec rspec  # full suite must pass
+bin/docker-dev test  # full suite must pass
 ```
 
 ### 5. Commit
@@ -208,7 +212,7 @@ find all alive subjects, then seed the ignore list so burn-down can start
 from a passing baseline:
 
 ```bash
-bundle exec mutant run 2>&1 \
+bin/docker-dev bash -c "bundle exec mutant run" 2>&1 \
   | sed -n 's/^evil:\([A-Za-z][A-Za-z0-9_:]*[#.][^:]*\):.*/\1/p' \
   | LC_ALL=C sort -u \
   || true
@@ -224,7 +228,7 @@ its alive mutations. Commit each fix with the ignore list removal included.
 
 - [ ] Each alive mutation has a clear action: add test or simplify code.
 - [ ] New tests fail against the mutated code, not just pass against the original.
-- [ ] Full RSpec suite passes after each change (`bundle exec rspec`).
+- [ ] Full RSpec suite passes after each change (`bin/docker-dev test`).
 - [ ] Each commit touches one subject only.
 - [ ] Unkillable mutations are in the ignore list with a comment.
 - [ ] Report: which mutation survived, which option was chosen, and why.

@@ -92,4 +92,4 @@ end
 - [ ] Counter caches for frequent counts
 - [ ] Eager loading in controllers
 - [ ] Batch processing for large datasets
-- [ ] Query analysis for slow endpoints
+- [ ] Query analysis for slow pages and actions

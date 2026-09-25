@@ -1,9 +1,15 @@
 # Pundit Policy Patterns Reference
 
+Isolation in this app is per user. The roles are **owner**, **another
+signed-in user** and **guest** (`user` is `nil`). There is no admin role and
+no multi-tenancy. Controllers scope lookups through `current_user`
+associations first (so another user's record is a 404) and call `authorize`
+second.
+
 ## ApplicationPolicy Base Class
 
 ```ruby
-# app/policies/application_policy.rb
+# app/policies/application_policy.rb (generated; denies everything)
 class ApplicationPolicy
   attr_reader :user, :record
 
@@ -12,33 +18,13 @@ class ApplicationPolicy
     @record = record
   end
 
-  def index?
-    false
-  end
-
-  def show?
-    false
-  end
-
-  def create?
-    false
-  end
-
-  def new?
-    create?
-  end
-
-  def update?
-    false
-  end
-
-  def edit?
-    update?
-  end
-
-  def destroy?
-    false
-  end
+  def index? = false
+  def show? = false
+  def create? = false
+  def new? = create?
+  def update? = false
+  def edit? = update?
+  def destroy? = false
 
   class Scope
     def initialize(user, scope)
@@ -47,7 +33,7 @@ class ApplicationPolicy
     end
 
     def resolve
-      raise NotImplementedError, "You must define #resolve in #{self.class}"
+      raise NoMethodError, "You must define #resolve in #{self.class}"
     end
 
     private
@@ -57,350 +43,110 @@ class ApplicationPolicy
 end
 ```
 
-## 1. Basic CRUD Policy
+## 1. Owner-Only Policy (the pattern used today)
 
 ```ruby
-# app/policies/entity_policy.rb
-class EntityPolicy < ApplicationPolicy
-  def index?
-    true # Everyone can see the list
-  end
-
+# app/policies/cart_policy.rb
+class CartPolicy < ApplicationPolicy
   def show?
-    true # Everyone can see an entity
-  end
-
-  def create?
-    user.present? # Only authenticated users
+    owner?
   end
 
   def update?
-    user.present? && owner?
-  end
-
-  def destroy?
-    user.present? && owner?
-  end
-
-  def permitted_attributes
-    if owner?
-      [:name, :description, :address, :phone, :email, :website, :status]
-    else
-      []
-    end
-  end
-
-  class Scope < Scope
-    def resolve
-      scope.published
-    end
+    owner?
   end
 
   private
 
   def owner?
-    record.user_id == user.id
+    user.present? && record.user_id == user.id
   end
 end
 ```
 
-## 2. Policy with Roles
-
 ```ruby
-# app/policies/submission_policy.rb
-class SubmissionPolicy < ApplicationPolicy
-  def index?
-    true
-  end
-
+# app/policies/order_policy.rb
+class OrderPolicy < ApplicationPolicy
   def show?
-    true
-  end
-
-  def create?
-    user.present? && !already_submitted?
-  end
-
-  def update?
-    return false unless user.present?
-
-    author? || admin?
-  end
-
-  def destroy?
-    return false unless user.present?
-
-    author? || admin? || entity_owner?
-  end
-
-  # Custom actions
-  def moderate?
-    user.present? && (admin? || entity_owner?)
-  end
-
-  def approve?
-    admin?
-  end
-
-  def flag?
-    user.present?
-  end
-
-  def permitted_attributes
-    if author? || user.present?
-      [:rating, :content, :submitted_date, :recommend]
-    else
-      []
-    end
-  end
-
-  class Scope < Scope
-    def resolve
-      if user&.admin?
-        scope.all
-      else
-        scope.approved
-      end
-    end
-  end
-
-  private
-
-  def author?
-    record.user_id == user.id
-  end
-
-  def admin?
-    user.admin?
-  end
-
-  def entity_owner?
-    record.entity.user_id == user.id
-  end
-
-  def already_submitted?
-    Submission.exists?(user: user, entity: record.entity)
-  end
-end
-```
-
-## 3. Policy with Complex Logic
-
-```ruby
-# app/policies/item_policy.rb
-class ItemPolicy < ApplicationPolicy
-  def index?
-    true
-  end
-
-  def show?
-    true
-  end
-
-  def create?
-    user.present? && entity_owner?
-  end
-
-  def update?
-    user.present? && (entity_owner? || admin?)
-  end
-
-  def destroy?
-    user.present? && entity_owner? && !has_dependencies?
-  end
-
-  def toggle_availability?
-    user.present? && entity_owner?
-  end
-
-  def duplicate?
-    create?
-  end
-
-  def reorder?
-    user.present? && entity_owner?
-  end
-
-  class Scope < Scope
-    def resolve
-      if user&.admin?
-        scope.all
-      elsif user.present?
-        scope.where(entity: user.entities)
-             .or(scope.where(available: true))
-      else
-        scope.available
-      end
-    end
-  end
-
-  private
-
-  def entity_owner?
-    record.entity.user_id == user.id
-  end
-
-  def admin?
-    user.admin?
-  end
-
-  def has_dependencies?
-    record.related_records.exists?
-  end
-end
-```
-
-## 4. Policy with Temporal Conditions
-
-```ruby
-# app/policies/booking_policy.rb
-class BookingPolicy < ApplicationPolicy
-  def create?
-    user.present? && entity_accepts_bookings? && not_in_past?
-  end
-
-  def show?
-    user.present? && (owner? || entity_owner? || admin?)
-  end
-
-  def update?
-    return false unless user.present?
-    return false if in_past?
-
-    owner? && can_still_modify?
-  end
-
-  def cancel?
-    return false unless user.present?
-    return false if in_past?
-
-    (owner? && can_still_cancel?) || entity_owner? || admin?
-  end
-
-  def confirm?
-    user.present? && (entity_owner? || admin?)
-  end
-
-  class Scope < Scope
-    def resolve
-      if user&.admin?
-        scope.all
-      elsif user.present?
-        scope.where(user: user)
-             .or(scope.where(entity: user.entities))
-      else
-        scope.none
-      end
-    end
+    owner?
   end
 
   private
 
   def owner?
-    record.user_id == user.id
-  end
-
-  def entity_owner?
-    record.entity.user_id == user.id
-  end
-
-  def admin?
-    user.admin?
-  end
-
-  def entity_accepts_bookings?
-    record.entity.accepts_bookings?
-  end
-
-  def not_in_past?
-    record.booking_date >= Date.current
-  end
-
-  def in_past?
-    record.booking_date < Date.current
-  end
-
-  def can_still_modify?
-    record.booking_datetime > 2.hours.from_now
-  end
-
-  def can_still_cancel?
-    record.booking_datetime > 4.hours.from_now
+    user.present? && record.user_id == user.id
   end
 end
 ```
 
-## 5. Policy for Administrative Actions
+## 2. Public Read, Owner Write
+
+Anyone (including guests) can read; only the owner can change.
 
 ```ruby
-# app/policies/user_policy.rb
-class UserPolicy < ApplicationPolicy
-  def index?
-    admin?
-  end
+class ReviewPolicy < ApplicationPolicy
+  def show? = true
+  def create? = user.present?
+  def update? = owner?
+  def destroy? = owner?
 
-  def show?
-    user.present? && (owner? || admin?)
-  end
+  private
 
-  def create?
-    true # Public registration
+  def owner?
+    user.present? && record.user_id == user.id
   end
+end
+```
+
+## 3. State-Dependent Rules
+
+Combine ownership with the record's state; keep each predicate readable.
+
+```ruby
+class OrderPolicy < ApplicationPolicy
+  def show? = owner?
+  def cancel? = owner? && record.pending?
+
+  private
+
+  def owner?
+    user.present? && record.user_id == user.id
+  end
+end
+```
+
+## 4. Temporal Conditions
+
+```ruby
+class ReviewPolicy < ApplicationPolicy
+  EDIT_WINDOW = 24.hours
 
   def update?
-    user.present? && (owner? || admin?)
-  end
-
-  def destroy?
-    admin? && !owner? # Admin cannot delete themselves
-  end
-
-  def suspend?
-    admin? && !owner?
-  end
-
-  def promote_to_admin?
-    admin? && !owner?
-  end
-
-  def impersonate?
-    admin? && !owner?
-  end
-
-  def export_data?
-    owner? || admin?
-  end
-
-  def permitted_attributes
-    if admin?
-      [:email, :first_name, :last_name, :role, :suspended]
-    elsif owner?
-      [:email, :first_name, :last_name, :bio, :avatar]
-    else
-      []
-    end
-  end
-
-  class Scope < Scope
-    def resolve
-      if user&.admin?
-        scope.all
-      elsif user.present?
-        scope.where(id: user.id)
-      else
-        scope.none
-      end
-    end
+    owner? && record.created_at > EDIT_WINDOW.ago
   end
 
   private
 
   def owner?
-    record.id == user.id
+    user.present? && record.user_id == user.id
   end
+end
+```
 
-  def admin?
-    user.admin?
+## 5. Scope (only when an association won't do)
+
+Prefer `current_user.orders`. Add a `Scope` only if the list can't be
+expressed as a `current_user` association:
+
+```ruby
+class ReviewPolicy < ApplicationPolicy
+  class Scope < ApplicationPolicy::Scope
+    # Published reviews for everyone, plus the viewer's own drafts.
+    def resolve
+      return scope.published if user.nil?
+
+      scope.published.or(scope.where(user: user))
+    end
   end
 end
 ```

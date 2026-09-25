@@ -1,316 +1,188 @@
 # Testing Strategy by Layer
 
+RSpec + FactoryBot + Shoulda Matchers + Capybara, all in `spec/`.
+`.claude/rules/testing.md` holds the house rule: the action goes in a
+`before` block via a named helper, `it` blocks hold expectations only,
+transition matchers (`change`, `not_to change`, `raise_error`) wrap the action.
+
 ## Test Pyramid
 
 ```
-        /\
-      /----\
-     /      \  Request Specs (moderate)
-    /--------\
-   /          \  Unit Specs (many)
-  --------------
-  Models, Services, Use Cases, Queries, Serializers, Policies
+          /\
+         /  \      System specs (spec/system) — a few critical browser flows
+        /----\
+       /      \    Request specs (spec/requests) — every controller action,
+      /        \   HTML and Turbo Stream, authn/authz
+     /----------\
+    /            \ Model, service, policy, query specs — most of the suite
+   /______________\
 ```
 
-## Unit Tests
+Run with `bin/docker-dev test` (everything except system) and
+`bin/docker-dev system`.
+
+## 1. Model and Service Specs (the base)
 
 ### Model Specs
 
-Test validations, scopes, and instance methods:
-
 ```ruby
-# spec/models/event_spec.rb
-RSpec.describe Event, type: :model do
-  describe "validations" do
-    it { is_expected.to validate_presence_of(:name) }
-    it { is_expected.to validate_presence_of(:event_date) }
-  end
+# spec/models/order_spec.rb
+RSpec.describe Order, type: :model do
+  subject { build(:order) }
 
   describe "associations" do
-    it { is_expected.to belong_to(:account) }
-    it { is_expected.to have_many(:vendors).through(:event_vendors) }
+    it { is_expected.to belong_to(:user) }
+    it { is_expected.to have_many(:order_items).dependent(:destroy) }
   end
 
-  describe "scopes" do
-    describe ".upcoming" do
-      let!(:past_event) { create(:event, event_date: 1.day.ago) }
-      let!(:future_event) { create(:event, event_date: 1.day.from_now) }
-
-      it "returns only future events" do
-        expect(described_class.upcoming).to contain_exactly(future_event)
-      end
-    end
-  end
-
-  describe "#days_until" do
-    it "returns days until event" do
-      event = build(:event, event_date: 5.days.from_now)
-      expect(event.days_until).to eq(5)
-    end
+  describe "validations" do
+    it { is_expected.to define_enum_for(:status).with_values(pending: 0, paid: 1, shipped: 2) }
+    it { is_expected.to validate_numericality_of(:total_cents).only_integer.is_greater_than_or_equal_to(0) }
   end
 end
 ```
 
 ### Service Specs
 
-Test business logic and error handling:
-
 ```ruby
-# spec/services/orders/create_service_spec.rb
-RSpec.describe Orders::CreateService do
-  subject(:service) { described_class.new }
+# spec/services/orders/checkout_service_spec.rb
+def checkout
+  described_class.new(user: user, shipping_attributes: shipping).call
+end
 
-  let(:user) { create(:user) }
-  let(:product) { create(:product, inventory: 10) }
+it "creates one order" do
+  expect { checkout }.to change(Order, :count).by(1)
+end
 
-  describe "#call" do
-    context "with valid params" do
-      let(:params) { { user: user, items: [{ product_id: product.id, quantity: 2 }] } }
+context "after checkout" do
+  let!(:order) { checkout }
 
-      it "returns success" do
-        expect(service.call(**params)).to be_success
-      end
+  it "snapshots each line's price" do
+    expect(order.order_items.pluck(:price_cents)).to contain_exactly(9999, 1499)
+  end
+end
 
-      it "creates an order" do
-        expect { service.call(**params) }.to change(Order, :count).by(1)
-      end
+context "when a line exceeds stock" do
+  before { novel.update!(stock: 2) }
 
-      it "returns the order" do
-        result = service.call(**params)
-        expect(result.data).to be_a(Order)
-      end
-    end
+  it "raises InsufficientStockError" do
+    expect { checkout }.to raise_error(described_class::InsufficientStockError)
+  end
 
-    context "with empty items" do
-      let(:params) { { user: user, items: [] } }
-
-      it "returns failure" do
-        expect(service.call(**params)).to be_failure
-      end
-
-      it "returns error code" do
-        expect(service.call(**params).code).to eq(:empty_cart)
-      end
-
-      it "does not create order" do
-        expect { service.call(**params) }.not_to change(Order, :count)
-      end
-    end
-
-    context "with insufficient inventory" do
-      let(:params) { { user: user, items: [{ product_id: product.id, quantity: 100 }] } }
-
-      it "returns failure with code" do
-        result = service.call(**params)
-        expect(result).to be_failure
-        expect(result.code).to eq(:out_of_stock)
-      end
-    end
+  it "leaves stock unchanged" do
+    expect { checkout rescue nil }.not_to change { novel.reload.stock }
   end
 end
 ```
 
-### Query Specs
-
-Test query results and tenant isolation:
+### Policy and Query Specs
 
 ```ruby
-# spec/queries/active_events_query_spec.rb
-RSpec.describe ActiveEventsQuery do
-  subject(:query) { described_class.new(account: account) }
+# spec/policies/order_policy_spec.rb
+context "as another user" do
+  let(:user) { build(:user) }
 
-  let(:account) { create(:account) }
-  let(:other_account) { create(:account) }
-
-  describe "#call" do
-    let!(:active_event) { create(:event, account: account, status: :active) }
-    let!(:inactive_event) { create(:event, account: account, status: :cancelled) }
-    let!(:other_event) { create(:event, account: other_account, status: :active) }
-
-    it "returns active events for account" do
-      expect(query.call).to include(active_event)
-    end
-
-    it "excludes inactive events" do
-      expect(query.call).not_to include(inactive_event)
-    end
-
-    it "excludes other account events (tenant isolation)" do
-      expect(query.call).not_to include(other_event)
-    end
-  end
+  it { expect(policy.show?).to be(false) }
 end
 ```
 
-## Integration Tests
+Query specs assert results and per-user isolation: user A's query never
+returns user B's records.
 
-### Request Specs
+## 2. Request Specs (the middle)
 
-Test HTTP flow and response:
+Every controller action, over HTML and Turbo Stream. Cover authentication
+(guest → sign in), authorization (another user's record → 404), valid and
+invalid params, and Turbo Stream target ids.
 
 ```ruby
-# spec/requests/events_spec.rb
-RSpec.describe "Events", type: :request do
-  let(:user) { create(:user) }
-  let(:account) { user.account }
+# spec/requests/cart_items_spec.rb
+let(:turbo_stream_headers) { { "Accept" => "text/vnd.turbo-stream.html" } }
 
-  before { sign_in user }
+def add_to_cart(product_id:, quantity: nil)
+  post cart_items_path, params: { product_id: product_id, quantity: quantity }.compact, headers: turbo_stream_headers
+end
 
-  describe "GET /events" do
-    let!(:event) { create(:event, account: account) }
-    let!(:other_event) { create(:event) } # Different account
-
-    it "returns success" do
-      get events_path
-      expect(response).to have_http_status(:ok)
-    end
-
-    it "shows user's events" do
-      get events_path
-      expect(response.body).to include(event.name)
-    end
-
-    it "does not show other accounts' events" do
-      get events_path
-      expect(response.body).not_to include(other_event.name)
-    end
+context "after adding" do
+  before do
+    sign_in_as(user)
+    add_to_cart(product_id: product.id, quantity: 2)
   end
 
-  describe "POST /events" do
-    let(:valid_params) { { event: { name: "New Event", event_date: 1.week.from_now } } }
-
-    it "creates event" do
-      expect {
-        post events_path, params: valid_params
-      }.to change(Event, :count).by(1)
-    end
-
-    it "redirects to event" do
-      post events_path, params: valid_params
-      expect(response).to redirect_to(Event.last)
-    end
-
-    context "with invalid params" do
-      let(:invalid_params) { { event: { name: "" } } }
-
-      it "renders form with errors" do
-        post events_path, params: invalid_params
-        expect(response).to have_http_status(:unprocessable_entity)
-      end
-    end
+  it "updates the cart count and cart items streams" do
+    expect(turbo_stream_targets).to include("cart_count", "cart_items")
   end
+end
+
+context "for another user's cart item" do
+  before do
+    sign_in_as(user)
+    patch cart_item_path(other_line), params: { quantity: 3 }, headers: turbo_stream_headers
+  end
+
+  it { expect(response).to have_http_status(:not_found) }
 end
 ```
 
-### Policy Specs
-
-Test authorization rules:
+Listing pages assert record links, not copy:
 
 ```ruby
-# spec/policies/event_policy_spec.rb
-RSpec.describe EventPolicy do
-  subject { described_class.new(user, event) }
+it "links only to the current user's orders" do
+  expect(response_link_hrefs).to include(order_path(own_order)).and exclude(order_path(other_order))
+end
+```
 
-  let(:account) { create(:account) }
-  let(:event) { create(:event, account: account) }
+## 3. System Specs (the tip)
 
-  context "user owns event" do
-    let(:user) { create(:user, account: account) }
+Only for flows that need a real browser: Turbo Streams landing, Stimulus
+behavior, multi-page journeys. Today: guest browsing and the purchase flow.
 
-    it { is_expected.to permit_actions([:show, :edit, :update, :destroy]) }
+```ruby
+# spec/system/purchase_flow_spec.rb
+context "after checking out" do
+  before do
+    sign_in_via_ui(user)
+    add_to_cart(product)
+    check_out
   end
 
-  context "user from different account" do
-    let(:user) { create(:user) }
-
-    it { is_expected.to forbid_actions([:show, :edit, :update, :destroy]) }
-  end
-
-  describe "Scope" do
-    let(:user) { create(:user, account: account) }
-    let!(:own_event) { create(:event, account: account) }
-    let!(:other_event) { create(:event) }
-
-    it "returns only own events" do
-      scope = described_class::Scope.new(user, Event).resolve
-      expect(scope).to include(own_event)
-      expect(scope).not_to include(other_event)
-    end
+  it "shows the new order" do
+    expect(page).to have_current_path(order_path(user.orders.last)).and have_link(href: product_path(product))
   end
 end
 ```
 
 ## Test Helpers
 
-### Shared Examples
+`spec/support/` provides:
 
-```ruby
-# spec/support/shared_examples/tenant_isolation.rb
-RSpec.shared_examples "tenant isolated" do
-  it "excludes other tenant data" do
-    other_account = create(:account)
-    other_record = create(factory, account: other_account)
-
-    expect(subject).not_to include(other_record)
-  end
-end
-
-# Usage
-RSpec.describe ActiveEventsQuery do
-  subject { described_class.new(account: account).call }
-  let(:account) { create(:account) }
-  let(:factory) { :event }
-
-  it_behaves_like "tenant isolated"
-end
-```
+| Helper | For |
+|---|---|
+| `sign_in_as(user)` | Request specs — posts to `session_path` |
+| `sign_in_via_ui(user)` | System specs — fills in the sign-in form |
+| `turbo_stream_targets` | Target ids of every `<turbo-stream>` in the response |
+| `response_link_hrefs` | Every `a[href]` in the response |
+| `exclude` | Negated `include` matcher |
 
 ### Factory Traits
 
 ```ruby
-# spec/factories/events.rb
-FactoryBot.define do
-  factory :event do
-    account
-    name { Faker::Company.name }
-    event_date { 1.month.from_now }
-    status { :draft }
-
-    trait :confirmed do
-      status { :confirmed }
-    end
-
-    trait :past do
-      event_date { 1.month.ago }
-    end
-
-    trait :with_vendors do
-      after(:create) do |event|
-        create_list(:event_vendor, 3, event: event)
-      end
-    end
-  end
-end
+create(:user, :with_cart)
+create(:product, :sold_out)      # stock 0
+create(:product, :low_stock)     # stock 2
+create(:category, :electronics)  # real slug, so icons and colours resolve
 ```
 
-## Coverage Requirements
+## What Not to Assert
 
-| Layer | Minimum Coverage |
-|-------|-----------------|
-| Models | 90% |
-| Services | 95% |
-| Queries | 90% |
-| Controllers | 80% |
-| Overall | 85% |
+- CSS classes (`bg-green-100`) or copy ("Order placed!") — both change with the design
+- Implementation details (private methods, instance variables)
 
 ## Checklist
 
-- [ ] Unit tests for all models
-- [ ] Service specs cover success/failure paths
-- [ ] Query specs test tenant isolation
-- [ ] Request specs for all endpoints
-- [ ] Policy specs for authorization
-- [ ] rswag/OpenAPI contract specs for public endpoints
-- [ ] Serializer contract specs for every rendered resource
-- [ ] Shared examples for common patterns
-- [ ] Factory traits for common states
+- [ ] Every model: associations and validations with Shoulda Matchers, plus its methods
+- [ ] Every service: success DB effects, each error class, rollback on failure
+- [ ] Every policy: owner, another user, guest
+- [ ] Every controller action: request spec for guest, owner, another user, valid/invalid params
+- [ ] Turbo Stream actions: media type and target ids
+- [ ] New critical browser flow: one system spec

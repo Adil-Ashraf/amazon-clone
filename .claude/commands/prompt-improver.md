@@ -49,7 +49,7 @@ Classify the intent to select the right template:
 | **Code review** | "review", "audit", "check", "analyze" |
 | **TDD cycle** | "test", "spec", "red/green", "TDD" |
 | **Architecture** | "design", "plan", "structure", "approach" |
-| **API contract** | "endpoint", "serializer", "payload", "envelope", "rswag" |
+| **UI contract** | "route", "page", "Turbo Frame", "Turbo Stream", "target id", "view" |
 
 ### Step 4: Build the Improved Prompt
 
@@ -173,20 +173,20 @@ add search to entities
 
 **Improved prompt:**
 ```
-Feature: Add search to the entities index page
+Feature: Add a status filter to the orders index page
 
 Acceptance criteria:
-- Text search by entity name (case-insensitive, partial match) via a `q` query param
-- Empty search returns all entities the actor can see
-- Preserves existing cursor pagination and the `{ "data": ... }` envelope
-- Results stay scoped to the current tenant
+- Filter the signed-in user's orders by status (pending / paid / shipped) via a `status` query param
+- No or unknown status shows all of the user's orders
+- Keeps the newest-first ordering; the filter links target a Turbo Frame so only the list reloads
+- Results stay scoped to current_user (another user's orders never appear)
 
 Constraints:
-- Create a query object in app/queries/ for the search logic
-- Allowlist any sort/filter values; add an `id` tie-breaker for stable ordering
-- Follow existing index action patterns
-- Add request specs for search behaviour, including tenant isolation
+- Keep OrdersController#index thin; use an Order scope (a query object only if it grows)
+- Allowlist status values against Order.statuses
+- Keep existing Turbo target ids stable; read docs/DESIGN.md before touching the view
+- Add request specs for each status, an unknown status, and per-user isolation
 
-Verify: bundle exec rspec spec/requests/entities_spec.rb
-Reference: @app/controllers/api/v1/entities_controller.rb @app/serializers/entity_serializer.rb
+Verify: bin/docker-dev test spec/requests/orders_spec.rb
+Reference: @app/controllers/orders_controller.rb @app/views/orders/index.html.erb @spec/requests/orders_spec.rb
 ```

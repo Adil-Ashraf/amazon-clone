@@ -1,8 +1,7 @@
 ---
 paths:
-  - "app/jobs/**/*.rb"
-  - "components/*/app/jobs/**/*.rb"
-  - "spec/jobs/**/*.rb"
+  - "app/jobs/**"
+  - "spec/jobs/**"
 ---
 
 # Background Job Conventions
@@ -13,4 +12,5 @@ paths:
 - Use `discard_on ActiveRecord::RecordNotFound` for deleted records
 - Use `retry_on` with specific exceptions and limits
 - Keep jobs focused: one job, one responsibility
+- Jobs have no request context: load the user by id and scope through their associations
 - Test with `have_enqueued_job` matcher

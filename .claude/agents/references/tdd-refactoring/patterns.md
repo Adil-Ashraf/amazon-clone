@@ -69,7 +69,7 @@ class EntitiesController < ApplicationController
 end
 ```
 
-**Run tests:** `bundle exec rspec spec/controllers/entities_controller_spec.rb`
+**Run tests:** `bin/docker-dev test spec/requests/entities_spec.rb`
 
 ## 2. Replace Conditional with Polymorphism
 
@@ -138,7 +138,7 @@ class NotificationService
 end
 ```
 
-**Run tests:** `bundle exec rspec spec/services/notification_service_spec.rb`
+**Run tests:** `bin/docker-dev test spec/services/notification_service_spec.rb`
 
 ## 3. Introduce Parameter Object
 
@@ -195,7 +195,7 @@ params = ReportParams.new(
 ReportGenerator.new.generate(params)
 ```
 
-**Run tests:** `bundle exec rspec spec/services/report_generator_spec.rb`
+**Run tests:** `bin/docker-dev test spec/services/report_generator_spec.rb`
 
 ## 4. Replace Magic Numbers with Named Constants
 
@@ -237,7 +237,7 @@ class User < ApplicationRecord
 end
 ```
 
-**Run tests:** `bundle exec rspec spec/models/user_spec.rb`
+**Run tests:** `bin/docker-dev test spec/models/user_spec.rb`
 
 ## 5. Decompose Conditional
 
@@ -283,47 +283,47 @@ class OrderProcessor
 end
 ```
 
-**Run tests:** `bundle exec rspec spec/services/order_processor_spec.rb`
+**Run tests:** `bin/docker-dev test spec/services/order_processor_spec.rb`
 
 ## 6. Remove Duplication (DRY)
 
 **Before:**
 ```ruby
-class EntityPolicy < ApplicationPolicy
+class OrderPolicy < ApplicationPolicy
   def update?
-    user.admin? || (record.user_id == user.id && record.status == 'draft')
+    user.present? && record.user_id == user.id && record.pending?
   end
 
   def destroy?
-    user.admin? || (record.user_id == user.id && record.status == 'draft')
+    user.present? && record.user_id == user.id && record.pending?
   end
 end
 ```
 
 **After:**
 ```ruby
-class EntityPolicy < ApplicationPolicy
+class OrderPolicy < ApplicationPolicy
   def update?
-    admin_or_owner_of_draft?
+    owner_of_pending_order?
   end
 
   def destroy?
-    admin_or_owner_of_draft?
+    owner_of_pending_order?
   end
 
   private
 
-  def admin_or_owner_of_draft?
-    user.admin? || owner_of_draft?
+  def owner_of_pending_order?
+    owner? && record.pending?
   end
 
-  def owner_of_draft?
-    record.user_id == user.id && record.status == 'draft'
+  def owner?
+    user.present? && record.user_id == user.id
   end
 end
 ```
 
-**Run tests:** `bundle exec rspec spec/policies/entity_policy_spec.rb`
+**Run tests:** `bin/docker-dev test spec/policies/order_policy_spec.rb`
 
 ## 7. Simplify Guard Clauses
 
@@ -360,7 +360,7 @@ class UserValidator
 end
 ```
 
-**Run tests:** `bundle exec rspec spec/validators/user_validator_spec.rb`
+**Run tests:** `bin/docker-dev test spec/validators/user_validator_spec.rb`
 
 ## 8. Extract Service from Fat Model
 
@@ -410,42 +410,39 @@ class Order < ApplicationRecord
 end
 
 # app/services/orders/create_service.rb
-class Orders::CreateService < ApplicationService
+class Orders::CreateService
   def initialize(params, user:)
     @params = params
     @user = user
   end
 
+  # Returns the order; RecordInvalid propagates for the controller to rescue.
   def call
     Order.transaction do
-      order = Order.create!(params)
+      order = @user.orders.create!(@params)
 
-      Orders::ConfirmationService.call(order)
-      Orders::InventoryService.call(order)
-      Orders::WarehouseNotifier.call(order)
-      Orders::AnalyticsLogger.call(order)
+      Orders::ConfirmationService.new(order: order).call
+      Orders::InventoryService.new(order: order).call
 
-      Success(order)
+      order
     end
-  rescue ActiveRecord::RecordInvalid => e
-    Failure(e.record.errors)
   end
 end
 
 # app/services/orders/payment_processor.rb
-class Orders::PaymentProcessor < ApplicationService
+class Orders::PaymentProcessor
   # Payment logic extracted
 end
 
 # app/services/orders/shipping_calculator.rb
-class Orders::ShippingCalculator < ApplicationService
+class Orders::ShippingCalculator
   # Shipping logic extracted
 end
 
 # app/services/orders/discount_applier.rb
-class Orders::DiscountApplier < ApplicationService
+class Orders::DiscountApplier
   # Discount logic extracted
 end
 ```
 
-**Run tests:** `bundle exec rspec spec/models/order_spec.rb spec/services/orders/`
+**Run tests:** `bin/docker-dev test spec/models/order_spec.rb spec/services/orders/`

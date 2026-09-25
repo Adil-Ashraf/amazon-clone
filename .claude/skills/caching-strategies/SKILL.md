@@ -2,12 +2,12 @@
 name: caching-strategies
 description: >-
   Implements Rails caching patterns for performance optimization. Use when
-  adding low-level caching, HTTP caching, cache
+  adding fragment caching, low-level caching, HTTP caching, cache
   invalidation, or when user mentions caching, performance, cache keys,
   or memoization. WHEN NOT: General query optimization (use
   performance-optimization), background job processing, or problems caused by
   N+1 queries rather than missing caches.
-paths: "app/controllers/**/*.rb, app/serializers/**/*.rb, components/*/app/controllers/**/*.rb"
+paths: "app/controllers/**/*.rb, app/views/**/*.erb, app/services/**/*.rb"
 ---
 
 # Caching Strategies for Rails 8
@@ -15,6 +15,7 @@ paths: "app/controllers/**/*.rb, app/serializers/**/*.rb, components/*/app/contr
 ## Overview
 
 Rails provides multiple caching layers:
+- **Fragment caching**: Cache rendered view partials
 - **Low-level caching**: Cache arbitrary data
 - **HTTP caching**: Browser and CDN caching
 - **Query caching**: Automatic within requests
@@ -47,6 +48,25 @@ bin/rails dev:cache
 | `:file_store` | Simple production | Persistent, no Redis | Slow, not shared |
 | `:null_store` | Testing | No caching | N/A |
 
+## Fragment Caching
+
+Cache rendered partials keyed on the record, so any update expires them:
+
+```erb
+<%# app/views/products/index.html.erb %>
+<% @products.each do |product| %>
+  <% cache product do %>
+    <%= render "products/product_card", product: product %>
+  <% end %>
+<% end %>
+```
+
+- Never cache per-user content (cart badge, "Hello, name") in a shared fragment;
+  include the user in the key or leave it uncached.
+- Turbo Stream targets inside a cached fragment still need stable ids.
+- `belongs_to :category, touch: true` cascades expiry up nested fragments
+  (Russian doll).
+
 ## Low-Level Caching
 
 Use `Rails.cache.fetch` with a block for the most common pattern. See [low-level-caching.md](references/low-level-caching.md) for:
@@ -54,7 +74,7 @@ Use `Rails.cache.fetch` with a block for the most common pattern. See [low-level
 - Caching in service objects
 - Caching in query objects
 - Instance variable memoization
-- Request-scoped memoization with `CurrentAttributes`
+- Request-scoped memoization in controllers (`@current_user ||=`)
 
 ## Cache Invalidation
 
@@ -73,7 +93,7 @@ Use `stale?` for conditional GET (ETags/Last-Modified) and `expires_in` for Cach
 
 Use a `:caching` metadata tag to enable caching in specs. See [http-caching-and-testing.md](references/http-caching-and-testing.md) for:
 - `rails_helper.rb` configuration
-- Testing cached serializer payload invalidation
+- Testing cached fragment invalidation
 - Testing cache invalidation in services
 - Performance monitoring and instrumentation
 
@@ -83,7 +103,8 @@ Use a `:caching` metadata tag to enable caching in specs. See [http-caching-and-
 - [ ] Low-level caching for expensive queries
 - [ ] Cache invalidation strategy defined
 - [ ] Counter caches for counts
-- [ ] HTTP caching headers for API
+- [ ] Fragment caching for expensive, shared partials
+- [ ] HTTP caching headers for public pages
 - [ ] Cache warming for cold starts (if needed)
 - [ ] Monitoring for hit/miss rates
 

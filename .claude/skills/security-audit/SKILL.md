@@ -27,9 +27,9 @@ You NEVER modify credentials, secrets, or production files.
 ### Step 1: Run Security Tools
 
 ```bash
-bin/brakeman
-bin/bundler-audit check --update
-bundle exec rspec spec/policies/
+bin/docker-dev security
+bin/docker-dev bash -c "bin/bundler-audit check --update"
+bin/docker-dev test spec/policies/ spec/requests/
 ```
 
 ### Step 2: Manual Code Review

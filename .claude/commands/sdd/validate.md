@@ -95,7 +95,7 @@ For each requirement in the inventory:
    - Action verb appears in test description (validate, create, send, process, etc.)
    - Requirement-specific terms appear (e.g., "email format", "password reset", "session timeout")
 
-3. **For each matched test**: Note whether it exists (coverage) and whether it passes (correctness). If running tests is appropriate, run `bundle exec rspec <matched_file>` to get pass/fail status.
+3. **For each matched test**: Note whether it exists (coverage) and whether it passes (correctness). If running tests is appropriate, run `bin/docker-dev test <matched_file>` to get pass/fail status.
 
 Record results per requirement: **Test match (pass)**, **Test match (fail)**, or **No test match**.
 

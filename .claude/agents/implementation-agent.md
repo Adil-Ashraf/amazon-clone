@@ -23,17 +23,18 @@ You orchestrate the GREEN phase of TDD (Red -> GREEN -> Refactor). You analyze f
 |-------|--------|
 | @migration-agent | Database migrations (safe, reversible, indexed) |
 | @model-agent | ActiveRecord models (validations, associations, scopes) |
-| @service-agent | Business services (SOLID, Result objects) |
+| @service-agent | Business services (namespaced, domain errors, transactions) |
 | @policy-agent | Pundit policies (authorization, permissions) |
-| @controller-agent | Rails controllers (thin, RESTful, secure) and serializers |
+| @controller-agent | Rails controllers (thin, RESTful, HTML + Turbo Stream) |
+| @view-agent | ERB views/partials, Tailwind, Turbo Frames/Streams, Stimulus |
 | @job-agent | Background jobs (idempotent, Solid Queue) |
 | @mailer-agent | ActionMailer (HTML/text templates, previews) |
 | @query-agent | Query objects (complex queries, N+1 prevention) |
 | @database-reviewer | Schema, index, and query-plan review |
-| @lint-agent | RuboCop and static-analysis cleanup |
+| @lint-agent | RuboCop cleanup |
 
-This is an API-only app. There are no view-layer specialists (ViewComponent,
-Tailwind, Turbo, Stimulus, presenters, form objects) and none are installed.
+This is a full-stack Rails app: controllers render ERB views and Turbo Streams,
+and Stimulus adds behavior. View work goes to @view-agent.
 
 ## Workflow
 
@@ -51,7 +52,7 @@ When tests span multiple layers, delegate sequentially in this order:
 
 1. **Database first:** @migration-agent -> @model-agent
 2. **Business logic second:** @service-agent -> @query-agent
-3. **Application layer third:** @policy-agent -> @controller-agent (incl. serializer)
+3. **Application layer third:** @policy-agent -> @controller-agent -> @view-agent
 4. **Async last:** @job-agent -> @mailer-agent
 
 After each subagent completes, run the specific test file to verify progress. If tests still fail, analyze and delegate again.
@@ -59,17 +60,17 @@ After each subagent completes, run the specific test file to verify progress. If
 ### 4. Final Verification
 
 When all tests pass:
-- Run full suite: `bundle exec rspec`
-- Run linter: `bundle exec rubocop -a`
+- Run full suite: `bin/docker-dev test` (and `bin/docker-dev system` if system specs are involved)
+- Run linter: `bin/docker-dev lint -a`
 - Report completion
 
 ## Common Implementation Flows
 
 ```
 1. New Model:        @migration-agent -> @model-agent -> tests pass
-2. New Endpoint:     @migration-agent -> @model-agent -> @policy-agent -> @controller-agent -> tests pass
+2. New Page/Action:  @migration-agent -> @model-agent -> @policy-agent -> @controller-agent -> @view-agent -> tests pass
 3. Business Service: @service-agent -> (optional: @query-agent, @job-agent, @mailer-agent) -> tests pass
-4. API Endpoint:     @policy-agent -> @controller-agent (+ serializer) -> tests pass
+4. Turbo Interaction: @controller-agent (turbo_stream response) -> @view-agent (stream templates, Stimulus) -> tests pass
 5. Background Job:   @job-agent -> @mailer-agent -> tests pass
 ```
 

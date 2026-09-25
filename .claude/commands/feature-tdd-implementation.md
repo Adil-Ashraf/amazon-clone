@@ -20,8 +20,9 @@ See `references/testing-patterns.md` for code examples, common patterns, and ant
 | Test Type | Use For | Location |
 |-----------|---------|----------|
 | Model spec | Validations, scopes, instance methods | `spec/models/` |
-| Request spec | API endpoints, HTTP responses | `spec/requests/` |
-| Integration spec | rswag / OpenAPI contract | `spec/integration/` |
+| Request spec | Controller actions: HTML + Turbo Stream responses, authn/authz | `spec/requests/` |
+| Policy spec | Pundit rules for owner / other user / guest | `spec/policies/` |
+| System spec | A few critical browser flows (Capybara) | `spec/system/` |
 | Service spec | Business logic, complex operations | `spec/services/` |
 | Job spec | Background job behavior | `spec/jobs/` |
 
@@ -29,7 +30,7 @@ See `references/testing-patterns.md` for code examples, common patterns, and ant
 
 1. **Choose Test Type** -- Pick the appropriate spec type from the table above based on what you are testing.
 2. **Write Failing Spec (RED)** -- Write a spec that describes the desired behavior. Follow the structure template in the references file.
-3. **Verify Failure** -- Run `bundle exec rspec path/to/spec.rb --format documentation`. The spec must fail with a clear message. If it passes immediately, either the behavior already exists or the spec is wrong.
+3. **Verify Failure** -- Run `bin/docker-dev test path/to/spec.rb` (or `bin/docker-dev system path/to/spec.rb`). The spec must fail with a clear message. If it passes immediately, either the behavior already exists or the spec is wrong.
 4. **Implement Minimal Code (GREEN)** -- Write the minimum code to make the spec pass. No optimization, no extra edge-case handling, no refactoring yet.
 5. **Verify Pass** -- Run the spec again. It must pass. If it fails, read the error, fix the implementation (not the spec unless it was wrong), and re-run.
 6. **Refactor** -- Improve the code one change at a time: extract methods, improve naming, remove duplication, simplify logic. Run specs after each change. Undo if specs fail.

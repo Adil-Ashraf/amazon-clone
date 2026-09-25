@@ -98,12 +98,19 @@ For **Controller Concerns**, test via request specs:
 RSpec.describe "[Feature]", type: :request do
   describe "pagination (from Paginatable concern)" do
     let(:user) { create(:user) }
-    before { sign_in user }
 
-    it "paginates results" do
-      create_list(:resource, 30, account: user.account)
-      get resources_path
-      expect(response.body).to include("page")
+    def get_resources(page: nil)
+      get resources_path(page: page)
+    end
+
+    before do
+      create_list(:resource, 30, user: user)
+      sign_in_as(user)
+      get_resources(page: 2)
+    end
+
+    it "renders the second page" do
+      expect(response).to have_http_status(:ok)
     end
   end
 end
@@ -112,9 +119,9 @@ end
 ### Step 2: Run Spec (Confirm RED)
 
 ```bash
-bundle exec rspec spec/models/concerns/[concern_name]_spec.rb
+bin/docker-dev test spec/models/concerns/[concern_name]_spec.rb
 # OR
-bundle exec rspec spec/models/[model]_spec.rb
+bin/docker-dev test spec/models/[model]_spec.rb
 ```
 
 ### Step 3: Implement Concern (GREEN)
@@ -189,7 +196,7 @@ end
 ### Step 4: Run Spec (Confirm GREEN)
 
 ```bash
-bundle exec rspec spec/models/concerns/[concern_name]_spec.rb
+bin/docker-dev test spec/models/concerns/[concern_name]_spec.rb
 ```
 
 ## Common Concern Patterns

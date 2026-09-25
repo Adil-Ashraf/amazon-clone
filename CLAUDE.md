@@ -2,7 +2,7 @@
 
 Full-stack **Rails 8.1 monolith**: ERB views, Hotwire (Turbo Frames/Streams +
 Stimulus via importmap), Tailwind v4 via `tailwindcss-rails` (`@theme` in
-`app/assets/tailwind/application.css`), Propshaft. Not API-only.
+`app/assets/tailwind/application.css`), Propshaft. Controllers render HTML.
 
 ## Conventions
 
@@ -14,8 +14,8 @@ Stimulus via importmap), Tailwind v4 via `tailwindcss-rails` (`@theme` in
 - Tests are RSpec + FactoryBot + Shoulda Matchers + Capybara in `spec/`: models,
   services, requests (`sign_in_as`), system (`sign_in_via_ui`), `spec/factories`.
 - Before any view/CSS/Stimulus work, read `docs/DESIGN.md`.
-- `.claude/rules/00-project-precedence.md` overrides the generic rules pack; any
-  rule assuming an API-only app (JSON-only, serializers, no views) does not apply.
+- `.claude/rules/00-project-precedence.md` is the authority, then the other
+  `.claude/rules/`, then agents, skills and commands.
 
 ## Commands
 

@@ -37,13 +37,12 @@ psql -c "SELECT indexrelname, idx_scan, idx_tup_read FROM pg_stat_user_indexes O
 - Verify composite index column order (equality first, then range)
 
 ### 2. Schema Design (HIGH)
-- Use proper types: `bigint` for IDs, `text` for strings, `timestamptz` for timestamps, `numeric` for money, `boolean` for flags
+- Use proper types: `bigint` for IDs, `text` for strings, `timestamptz` for timestamps, `integer` cents for money (never float/numeric in this app), `boolean` for flags
 - Define constraints: PK, FK with `ON DELETE`, `NOT NULL`, `CHECK`
 - Use `lowercase_snake_case` identifiers (no quoted mixed-case)
 
 ### 3. Security (CRITICAL)
-- RLS enabled on multi-tenant tables with `(SELECT auth.uid())` pattern
-- RLS policy columns indexed
+- Per-user ownership: user-owned tables carry an indexed `user_id` foreign key (or reach a user through one), and the app scopes queries through it
 - Least privilege access — no `GRANT ALL` to application users
 - Public schema permissions revoked
 
@@ -73,9 +72,8 @@ psql -c "SELECT indexrelname, idx_scan, idx_tup_read FROM pg_stat_user_indexes O
 
 - [ ] All WHERE/JOIN columns indexed
 - [ ] Composite indexes in correct column order
-- [ ] Proper data types (bigint, text, timestamptz, numeric)
-- [ ] RLS enabled on multi-tenant tables
-- [ ] RLS policies use `(SELECT auth.uid())` pattern
+- [ ] Proper data types (bigint, text, timestamptz, integer cents for money)
+- [ ] User-owned tables have an indexed `user_id` (or parent) foreign key
 - [ ] Foreign keys have indexes
 - [ ] No N+1 query patterns
 - [ ] EXPLAIN ANALYZE run on complex queries

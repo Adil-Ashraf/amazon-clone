@@ -35,7 +35,7 @@ Quick reference for PostgreSQL best practices. For detailed guidance, use the `d
 | IDs | `bigint` | `int`, random UUID |
 | Strings | `text` | `varchar(255)` |
 | Timestamps | `timestamptz` | `timestamp` |
-| Money | `numeric(10,2)` | `float` |
+| Money | `integer` cents (`price_cents`) | `float`, `numeric` |
 | Flags | `boolean` | `varchar`, `int` |
 
 ### Common Patterns

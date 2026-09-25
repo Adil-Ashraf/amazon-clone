@@ -47,9 +47,9 @@ end
 ```ruby
 class UsersController < ApplicationController
   def remove_avatar
-    user = find_user!
+    user = current_user
     user.avatar.purge
-    render json: { data: UserSerializer.new(user:).as_json }
+    redirect_to edit_user_path(user), notice: "Avatar removed."
   end
 end
 ```

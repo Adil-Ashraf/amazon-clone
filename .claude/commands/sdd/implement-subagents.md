@@ -83,7 +83,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **REQUIRED**: Read tasks.md for the complete task list and execution plan
    - **REQUIRED**: Read plan.md for tech stack, architecture, and file structure
    - **IF EXISTS**: Read data-model.md for entities and relationships
-   - **IF EXISTS**: Read contracts/ for API specifications and test requirements
+   - **IF EXISTS**: Read contracts/ for route and UI contracts (routes, Turbo Frame/Stream target ids, views) and test requirements
    - **IF EXISTS**: Read research.md for technical decisions and constraints
    - **IF EXISTS**: Read quickstart.md for integration scenarios
    - **IF EXISTS**: Read `.specify/memory/lessons-learned.md` for cross-feature learnings — filter to entries tagged `[phase:implement]` or `[phase:all]` and note any relevant to the current feature's tech stack or error-prone areas
@@ -124,21 +124,18 @@ You **MUST** consider the user input before proceeding (if not empty).
    |-------------|-----------------|
    | `spec/**` test tasks (TDD RED) | `rspec-agent` |
    | `db/migrate/*` migrations | `migration-agent` |
-   | `{app,components/*/app}/models/*` | `model-agent` |
-   | `{app,components/*/app}/services/*` | `service-agent` |
-   | `{app,components/*/app}/use_cases/*` | `service-agent` |
-   | `{app,components/*/app}/queries/*` | `query-agent` |
-   | `{app,components/*/app}/controllers/*` | `controller-agent` |
-   | `{app,components/*/app}/serializers/*` | `controller-agent` |
-   | `{app,components/*/app}/policies/*` | `policy-agent` |
-   | `{app,components/*/app}/jobs/*` | `job-agent` |
-   | `{app,components/*/app}/mailers/*` | `mailer-agent` |
+   | `app/models/*` | `model-agent` |
+   | `app/services/*` | `service-agent` |
+   | `app/queries/*` | `query-agent` |
+   | `app/controllers/*` | `controller-agent` |
+   | `app/views/*`, `app/helpers/*`, `app/javascript/*`, `app/assets/tailwind/*` | `view-agent` |
+   | `app/policies/*` | `policy-agent` |
+   | `app/jobs/*` | `job-agent` |
+   | `app/mailers/*` | `mailer-agent` |
    | Anything without a clear match | `general-purpose` |
 
-   This is an API-only app: there are no form objects, presenters,
-   ViewComponents, Stimulus controllers, Turbo tasks, or Tailwind work, and no
-   agents for them are installed. Route rendering tasks to `controller-agent`
-   (serializers) instead.
+   Views, partials, Turbo Stream templates, Stimulus controllers and Tailwind
+   work go to `view-agent`, which reads `docs/DESIGN.md` first.
 
    - Choose the specialist by the task's primary output file. If a task spans layers, pick the layer it mostly creates (or split it).
    - **TDD pairing**: route the test task to `rspec-agent` (writes the failing spec), then route the matching implementation task to its layer specialist (makes it pass). The parent runs the spec between the two to confirm RED → GREEN.
@@ -197,12 +194,12 @@ You **MUST** consider the user input before proceeding (if not empty).
    ```
 
    **Per-task verification** (parent runs after each subagent completes):
-   - Run `bundle exec rubocop -a` on files the subagent created or modified
-   - If the task involved tests, run `bundle exec rspec {test_file}` to verify they pass
+   - Run `bin/docker-dev lint -a` on files the subagent created or modified
+   - If the task involved tests, run `bin/docker-dev test {test_file}` to verify they pass
 
    **Per-phase verification** (parent runs after all tasks in a phase complete):
-   - Run `bundle exec rspec` to catch regressions across the full suite
-   - If system tests exist for the phase, also run `bundle exec rspec spec/system/`
+   - Run `bin/docker-dev test` to catch regressions across the full suite
+   - If system specs exist for the phase, also run `bin/docker-dev system`
 
    **Error handling for subagents**:
    - If a subagent fails or produces code that doesn't pass verification: retry **once** with the error output included in the subagent prompt as additional context
@@ -213,7 +210,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **Setup (Phase 1, parent-executed)**: Initialize config initializers, routes, dependencies — execute these directly without subagents
    - **Foundational (Phase 2, subagent-executed)**: Run migrations, create models, write model specs — each task gets a fresh subagent routed to its specialist (`migration-agent`, `model-agent`, `rspec-agent`)
    - **User Stories (Phase 3+, subagent-executed)**: Implement services, controllers, views per user story — each task gets a fresh subagent (routed to its specialist) with only that story's spec section
-   - **Polish (Final phase, parent-executed)**: `bundle exec rubocop -a`, `bin/brakeman --no-pager`, `bundle exec rspec` — execute directly, no subagents needed
+   - **Polish (Final phase, parent-executed)**: `bin/docker-dev lint -a`, `bin/docker-dev security`, `bin/docker-dev test`, `bin/docker-dev system` — execute directly, no subagents needed
 
 8. Progress tracking and error handling (parent orchestrator responsibilities):
    - Report progress after each completed task (whether parent-executed or subagent-executed)

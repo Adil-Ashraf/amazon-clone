@@ -83,7 +83,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **REQUIRED**: Read tasks.md for the complete task list and execution plan
    - **REQUIRED**: Read plan.md for tech stack, architecture, and file structure
    - **IF EXISTS**: Read data-model.md for entities and relationships
-   - **IF EXISTS**: Read contracts/ for API specifications and test requirements
+   - **IF EXISTS**: Read contracts/ for route and UI contracts (routes, Turbo Frame/Stream target ids, views) and test requirements
    - **IF EXISTS**: Read research.md for technical decisions and constraints
    - **IF EXISTS**: Read quickstart.md for integration scenarios
    - **IF EXISTS**: Read `.specify/memory/lessons-learned.md` for cross-feature learnings — filter to entries tagged `[phase:implement]` or `[phase:all]` and note any relevant to the current feature's tech stack or error-prone areas
@@ -120,14 +120,14 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **Follow TDD approach**: Execute test tasks before their corresponding implementation tasks
    - **File-based coordination**: Tasks affecting the same files must run sequentially
    - **Validation checkpoints**: Verify each phase completion before proceeding
-   - **Post-phase verification**: After completing each phase, run `bundle exec rspec` to catch regressions early.
+   - **Post-phase verification**: After completing each phase, run `bin/docker-dev test` to catch regressions early.
 
 7. Implementation execution rules:
    - **Setup first**: Initialize config initializers, routes, dependencies
    - **Foundation**: Run migrations, create models, write model tests
    - **Core development**: Implement services, controllers, views per user story
-   - **Testing**: Write request specs plus focused use-case/query/serializer/policy specs per story (RED before each implementation task)
-   - **Polish and validation**: `bundle exec rubocop -a`, `bin/brakeman --no-pager`, `bundle exec rspec`
+   - **Testing**: Write request specs plus focused service/query/policy specs per story (and a system spec for a new critical browser flow) (RED before each implementation task)
+   - **Polish and validation**: `bin/docker-dev lint -a`, `bin/docker-dev security`, `bin/docker-dev test`, `bin/docker-dev system`
 
 8. Progress tracking and error handling:
    - Report progress after each completed task

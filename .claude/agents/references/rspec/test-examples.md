@@ -1,52 +1,56 @@
 # RSpec Test Examples
 
+Drawn from this app's `spec/`. Every example follows the house rule: the
+action goes in a `before` block through a named helper, each `it` holds
+expectations only, and transition matchers (`change`, `not_to change`,
+`raise_error`) wrap the action.
+
 ## Model Test
 
 ```ruby
-# spec/models/user_spec.rb
-require 'rails_helper'
+# spec/models/product_spec.rb
+require "rails_helper"
 
-RSpec.describe User, type: :model do
-  describe 'associations' do
-    it { is_expected.to have_many(:items).dependent(:destroy) }
-    it { is_expected.to belong_to(:organization) }
+RSpec.describe Product, type: :model do
+  subject { build(:product) }
+
+  describe "associations" do
+    it { is_expected.to belong_to(:category) }
   end
 
-  describe 'validations' do
-    subject { build(:user) }
-
-    it { is_expected.to validate_presence_of(:email) }
-    it { is_expected.to validate_uniqueness_of(:email).case_insensitive }
-    it { is_expected.to validate_length_of(:username).is_at_least(3) }
+  describe "validations" do
+    it { is_expected.to validate_presence_of(:name) }
+    it { is_expected.to validate_numericality_of(:price_cents).only_integer.is_greater_than(0) }
+    it { is_expected.to validate_numericality_of(:stock).only_integer.is_greater_than_or_equal_to(0) }
   end
 
-  describe '#full_name' do
-    context 'when both first and last name are present' do
-      let(:user) { build(:user, first_name: 'John', last_name: 'Doe') }
+  describe "stock predicates" do
+    context "when sold out" do
+      let(:product) { build(:product, :sold_out) }
 
-      it 'returns the full name' do
-        expect(user.full_name).to eq('John Doe')
-      end
+      it { expect(product).to be_out_of_stock }
+      it { expect(product).not_to be_low_stock }
     end
 
-    context 'when only first name is present' do
-      let(:user) { build(:user, first_name: 'John', last_name: nil) }
+    context "when low on stock" do
+      let(:product) { build(:product, :low_stock) }
 
-      it 'returns only the first name' do
-        expect(user.full_name).to eq('John')
-      end
+      it { expect(product).to be_low_stock }
     end
   end
+end
+```
 
-  describe 'scopes' do
-    describe '.active' do
-      let!(:active_user) { create(:user, status: 'active') }
-      let!(:inactive_user) { create(:user, status: 'inactive') }
+For a model with a normalizing callback, perform the validation in `before`:
 
-      it 'returns only active users' do
-        expect(User.active).to contain_exactly(active_user)
-      end
-    end
+```ruby
+describe "email normalization" do
+  let(:user) { build(:user, email: "Mixed.Case@Example.COM") }
+
+  before { user.validate }
+
+  it "downcases the email before validation" do
+    expect(user.email).to eq("mixed.case@example.com")
   end
 end
 ```
@@ -54,188 +58,116 @@ end
 ## Service Test
 
 ```ruby
-# spec/services/user_registration_service_spec.rb
-require 'rails_helper'
+# spec/services/carts/cart_service_spec.rb
+require "rails_helper"
 
-RSpec.describe UserRegistrationService do
-  subject(:service) { described_class.new(params) }
+RSpec.describe Carts::CartService do
+  let(:cart) { create(:cart) }
+  let(:service) { described_class.new(cart) }
+  let(:product) { create(:product, stock: 10) }
 
-  describe '#call' do
-    context 'with valid parameters' do
-      let(:params) do
-        {
-          email: 'user@example.com',
-          password: 'SecurePass123!',
-          first_name: 'John'
-        }
-      end
-
-      it 'creates a new user' do
-        expect { service.call }.to change(User, :count).by(1)
-      end
-
-      it 'sends a welcome email' do
-        expect(UserMailer).to receive(:welcome_email).and_call_original
-        service.call
-      end
-
-      it 'returns success result' do
-        result = service.call
-        expect(result.success?).to be true
-        expect(result.user).to be_a(User)
-      end
+  describe "#add_item" do
+    def add_item(quantity)
+      service.add_item(product: product, quantity: quantity)
     end
 
-    context 'with invalid email' do
-      let(:params) { { email: 'invalid', password: 'SecurePass123!' } }
+    context "when the product is already in the cart" do
+      let!(:line) { create(:cart_item, cart: cart, product: product, quantity: 1) }
 
-      it 'does not create a user' do
-        expect { service.call }.not_to change(User, :count)
+      it "does not create a second line" do
+        expect { add_item(3) }.not_to change { cart.cart_items.count }
       end
 
-      it 'returns failure result with errors' do
-        result = service.call
-        expect(result.success?).to be false
-        expect(result.errors).to include(:email)
+      context "after adding" do
+        before { add_item(3) }
+
+        it "merges the quantities" do
+          expect(line.reload.quantity).to eq(4)
+        end
       end
-    end
 
-    context 'when email already exists' do
-      let(:params) { { email: existing_user.email, password: 'NewPass123!' } }
-      let!(:existing_user) { create(:user) }
-
-      it 'returns failure result' do
-        result = service.call
-        expect(result.success?).to be false
-        expect(result.errors).to include('Email already taken')
+      context "when the merged quantity would exceed stock" do
+        it "raises InsufficientStockError" do
+          expect { add_item(10) }.to raise_error(described_class::InsufficientStockError)
+        end
       end
     end
+  end
+end
+```
+
+A failure must change nothing — assert that with `not_to change` around the call:
+
+```ruby
+# spec/services/orders/checkout_service_spec.rb
+context "when a line exceeds stock" do
+  before { novel.update!(stock: 2) } # cart wants 3
+
+  it "creates no order or order items" do
+    expect { checkout rescue nil }.not_to change { [ Order.count, OrderItem.count ] }
+  end
+
+  it "leaves stock unchanged" do
+    expect { checkout rescue nil }.not_to change { [ headphones.reload.stock, novel.reload.stock ] }
   end
 end
 ```
 
 ## Request Test (preferred over controller specs)
 
+HTML action:
+
 ```ruby
-# spec/requests/api/users_spec.rb
-require 'rails_helper'
+# spec/requests/orders_spec.rb
+require "rails_helper"
 
-RSpec.describe 'API::Users', type: :request do
+RSpec.describe "Orders", type: :request do
   let(:user) { create(:user) }
-  let(:headers) { { 'Authorization' => "Bearer #{user.auth_token}" } }
+  let!(:own_order) { create(:order, user: user) }
+  let!(:other_order) { create(:order) }
 
-  describe 'GET /api/users/:id' do
-    context 'when user exists' do
-      it 'returns the user' do
-        get "/api/users/#{user.id}", headers: headers
-
-        expect(response).to have_http_status(:ok)
-        expect(json_response['id']).to eq(user.id)
-        expect(json_response['email']).to eq(user.email)
-      end
+  describe "GET /orders/:id" do
+    def get_order(order)
+      get order_path(order)
     end
 
-    context 'when user does not exist' do
-      it 'returns 404' do
-        get '/api/users/999999', headers: headers
+    before { sign_in_as(user) }
 
-        expect(response).to have_http_status(:not_found)
-        expect(json_response['error']).to eq('User not found')
-      end
+    context "for the current user's order" do
+      before { get_order(own_order) }
+
+      it { expect(response).to have_http_status(:ok) }
     end
 
-    context 'when not authenticated' do
-      it 'returns 401' do
-        get "/api/users/#{user.id}"
+    context "for another user's order" do
+      before { get_order(other_order) }
 
-        expect(response).to have_http_status(:unauthorized)
-      end
-    end
-  end
-
-  describe 'POST /api/users' do
-    let(:valid_params) do
-      {
-        user: {
-          email: 'newuser@example.com',
-          password: 'SecurePass123!',
-          first_name: 'Jane'
-        }
-      }
-    end
-
-    context 'with valid parameters' do
-      it 'creates a new user' do
-        expect {
-          post '/api/users', params: valid_params, headers: headers
-        }.to change(User, :count).by(1)
-
-        expect(response).to have_http_status(:created)
-        expect(json_response['email']).to eq('newuser@example.com')
-      end
-    end
-
-    context 'with invalid parameters' do
-      let(:invalid_params) do
-        { user: { email: 'invalid' } }
-      end
-
-      it 'returns validation errors' do
-        post '/api/users', params: invalid_params, headers: headers
-
-        expect(response).to have_http_status(:unprocessable_entity)
-        expect(json_response['errors']).to be_present
-      end
+      it { expect(response).to have_http_status(:not_found) }
     end
   end
 end
 ```
 
-## View Component Test
+Turbo Stream action:
 
 ```ruby
-# spec/components/user_card_component_spec.rb
-require 'rails_helper'
+# spec/requests/cart_items_spec.rb
+let(:turbo_stream_headers) { { "Accept" => "text/vnd.turbo-stream.html" } }
 
-RSpec.describe UserCardComponent, type: :component do
-  let(:user) { create(:user, first_name: 'John', last_name: 'Doe') }
+def add_to_cart(product_id:, quantity: nil)
+  post cart_items_path, params: { product_id: product_id, quantity: quantity }.compact, headers: turbo_stream_headers
+end
 
-  describe 'rendering' do
-    subject { render_inline(described_class.new(user: user)) }
-
-    it 'displays the user name' do
-      expect(subject.text).to include('John Doe')
-    end
-
-    it 'includes the user avatar' do
-      expect(subject.css('img[alt="John Doe"]')).to be_present
-    end
-
-    context 'with premium user' do
-      let(:user) { create(:user, :premium) }
-
-      it 'displays the premium badge' do
-        expect(subject.css('.premium-badge')).to be_present
-      end
-    end
-
-    context 'with custom variant' do
-      subject { render_inline(described_class.new(user: user, variant: :compact)) }
-
-      it 'applies compact styling' do
-        expect(subject.css('.user-card--compact')).to be_present
-      end
-    end
+context "after adding" do
+  before do
+    sign_in_as(user)
+    add_to_cart(product_id: product.id, quantity: 2)
   end
 
-  describe 'slots' do
-    it 'renders action slot content' do
-      component = described_class.new(user: user)
-      component.with_action { 'Edit Profile' }
+  it { expect(response.media_type).to eq("text/vnd.turbo-stream.html") }
 
-      result = render_inline(component)
-      expect(result.text).to include('Edit Profile')
-    end
+  it "updates the cart count and cart items streams" do
+    expect(turbo_stream_targets).to include("cart_count", "cart_items")
   end
 end
 ```
@@ -243,154 +175,109 @@ end
 ## Query Object Test
 
 ```ruby
-# spec/queries/active_users_query_spec.rb
-require 'rails_helper'
+# spec/queries/recent_orders_query_spec.rb
+require "rails_helper"
 
-RSpec.describe ActiveUsersQuery do
-  subject(:query) { described_class.new(relation) }
+RSpec.describe RecentOrdersQuery do
+  subject(:query) { described_class.new(user: user) }
 
-  let(:relation) { User.all }
+  let(:user) { create(:user) }
+  let!(:recent) { create(:order, user: user, created_at: 2.days.ago) }
+  let!(:old) { create(:order, user: user, created_at: 60.days.ago) }
+  let!(:someone_elses) { create(:order, created_at: 1.day.ago) }
 
-  describe '#call' do
-    let!(:active_user) { create(:user, status: 'active', last_sign_in_at: 2.days.ago) }
-    let!(:inactive_user) { create(:user, status: 'inactive') }
-    let!(:old_active_user) { create(:user, status: 'active', last_sign_in_at: 40.days.ago) }
-
-    it 'returns only active users signed in within 30 days' do
-      expect(query.call).to contain_exactly(active_user)
-    end
-
-    context 'with custom days threshold' do
-      subject(:query) { described_class.new(relation, days: 60) }
-
-      it 'returns users within the specified threshold' do
-        expect(query.call).to contain_exactly(active_user, old_active_user)
-      end
-    end
+  it "returns only the user's orders from the last 30 days" do
+    expect(query.call).to contain_exactly(recent)
   end
 end
 ```
 
 ## Pundit Policy Test
 
+Roles are guest, owner and another user — there is no admin.
+
 ```ruby
-# spec/policies/submission_policy_spec.rb
-require 'rails_helper'
+# spec/policies/order_policy_spec.rb
+require "rails_helper"
 
-RSpec.describe SubmissionPolicy do
-  subject { described_class.new(user, submission) }
+RSpec.describe OrderPolicy, type: :policy do
+  subject(:policy) { described_class.new(user, order) }
 
-  let(:submission) { create(:submission, user: author) }
-  let(:author) { create(:user) }
+  let(:order) { build(:order) }
 
-  context 'when user is the author' do
-    let(:user) { author }
-
-    it { is_expected.to permit_action(:show) }
-    it { is_expected.to permit_action(:edit) }
-    it { is_expected.to permit_action(:update) }
-    it { is_expected.to permit_action(:destroy) }
-  end
-
-  context 'when user is not the author' do
-    let(:user) { create(:user) }
-
-    it { is_expected.to permit_action(:show) }
-    it { is_expected.to forbid_action(:edit) }
-    it { is_expected.to forbid_action(:update) }
-    it { is_expected.to forbid_action(:destroy) }
-  end
-
-  context 'when user is an admin' do
-    let(:user) { create(:user, :admin) }
-
-    it { is_expected.to permit_action(:show) }
-    it { is_expected.to permit_action(:edit) }
-    it { is_expected.to permit_action(:update) }
-    it { is_expected.to permit_action(:destroy) }
-  end
-
-  context 'when user is not logged in' do
+  context "as a guest" do
     let(:user) { nil }
 
-    it { is_expected.to permit_action(:show) }
-    it { is_expected.to forbid_action(:edit) }
+    it { expect(policy.show?).to be(false) }
+  end
+
+  context "as the owner" do
+    let(:user) { order.user }
+
+    it { expect(policy.show?).to be(true) }
+  end
+
+  context "as another user" do
+    let(:user) { build(:user) }
+
+    it { expect(policy.show?).to be(false) }
   end
 end
 ```
 
 ## System Test (end-to-end)
 
+Only for a few critical browser flows. Interact through labels and buttons;
+assert on paths, links and stable ids.
+
 ```ruby
-# spec/system/user_authentication_spec.rb
-require 'rails_helper'
+# spec/system/purchase_flow_spec.rb
+require "rails_helper"
 
-RSpec.describe 'User Authentication', type: :system do
-  let(:user) { create(:user, email: 'user@example.com', password: 'SecurePass123!') }
+RSpec.describe "Purchase flow", type: :system do
+  let(:user) { create(:user, :with_cart) }
+  let!(:product) { create(:product, stock: 10) }
 
-  describe 'Sign in' do
+  def add_to_cart(product)
+    visit product_path(product)
+    click_button "Add to Cart"
+    find("#cart_count", text: "1") # wait for the Turbo Stream to land
+  end
+
+  context "after adding a product to the cart" do
     before do
-      visit new_user_session_path
+      sign_in_via_ui(user)
+      add_to_cart(product)
+      visit cart_path
     end
 
-    context 'with valid credentials' do
-      it 'signs in the user successfully' do
-        fill_in 'Email', with: user.email
-        fill_in 'Password', with: 'SecurePass123!'
-        click_button 'Sign in'
-
-        expect(page).to have_content('Signed in successfully')
-        expect(page).to have_current_path(root_path)
-      end
-    end
-
-    context 'with invalid password' do
-      it 'shows an error message' do
-        fill_in 'Email', with: user.email
-        fill_in 'Password', with: 'WrongPassword'
-        click_button 'Sign in'
-
-        expect(page).to have_content('Invalid email or password')
-        expect(page).to have_current_path(new_user_session_path)
-      end
-    end
-
-    context 'with a filtered request' do
-      it 'updates the frame without full page reload' do
-        within '#login-frame' do
-          fill_in 'Email', with: user.email
-          fill_in 'Password', with: 'SecurePass123!'
-          click_button 'Sign in'
-        end
-
-        expect(page).to have_css('#user-menu', text: user.email)
-      end
+    it "lists the product in the cart" do
+      expect(find("#cart_items")).to have_link(href: product_path(product))
     end
   end
 end
 ```
 
-## Anti-Pattern to Avoid
+## Anti-Patterns to Avoid
 
 ```ruby
 # Don't do this!
-RSpec.describe User do
-  it 'works' do
-    user = User.new(email: 'test@example.com')
-    expect(user.email).to eq('test@example.com')
+RSpec.describe "Orders", type: :request do
+  # Action inside `it` -- breaks the house rule
+  it "shows the order" do
+    get order_path(order)
+    expect(response).to have_http_status(:ok)
   end
 
-  # Too vague, no context
-  it 'validates' do
-    expect(User.new).not_to be_valid
+  # Asserting copy and CSS classes -- breaks on every redesign
+  it "shows a success banner" do
+    expect(response.body).to include("bg-green-100")
+    expect(response.body).to include("Order placed!")
   end
 
-  # Tests multiple things at once
-  it 'creates user and sends email' do
-    user = User.create(email: 'test@example.com')
-    expect(user).to be_persisted
-    expect(ActionMailer::Base.deliveries.count).to eq(1)
-    expect(user.active?).to be true
+  # Tests multiple behaviors at once
+  it "creates the order and empties the cart and decrements stock" do
+    # ...
   end
 end
 ```

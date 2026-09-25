@@ -104,7 +104,6 @@ class SubmissionMailer < ApplicationMailer
 
     mail(
       to: @owner.email,
-      cc: admin_emails,
       subject: "New submission for #{@entity.name}",
       reply_to: @author.email
     )
@@ -122,11 +121,6 @@ class SubmissionMailer < ApplicationMailer
     )
   end
 
-  private
-
-  def admin_emails
-    User.admin.pluck(:email)
-  end
 end
 ```
 

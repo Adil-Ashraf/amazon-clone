@@ -177,7 +177,7 @@ class Event < ApplicationRecord
 end
 
 # Controller
-@events = Event.with_details.where(account: current_account)
+@events = current_user.events.with_details
 ```
 
 ## Counter Caches

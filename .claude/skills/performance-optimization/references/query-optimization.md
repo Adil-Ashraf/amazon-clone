@@ -84,7 +84,7 @@ end
 add_index :events, :status
 
 # Composite index (order matters!)
-add_index :events, [:account_id, :status]
+add_index :events, [:user_id, :status]
 
 # Unique index
 add_index :users, :email, unique: true
@@ -93,14 +93,14 @@ add_index :users, :email, unique: true
 add_index :events, :event_date, where: "status = 0"
 
 # Covering index (PostgreSQL)
-add_index :events, [:account_id, :status], include: [:name, :event_date]
+add_index :events, [:user_id, :status], include: [:name, :event_date]
 ```
 
 ### When to Add Indexes
 
 | Add Index For | Example |
 |--------------|---------|
-| Foreign keys | `account_id`, `user_id` |
+| Foreign keys | `user_id`, `product_id` |
 | Columns in WHERE | `WHERE status = 'active'` |
 | Columns in ORDER BY | `ORDER BY created_at DESC` |
 | Columns in JOIN | `JOIN ON events.venue_id` |

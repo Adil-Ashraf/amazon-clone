@@ -200,7 +200,7 @@ Use change-specific sections when they improve comprehension:
 * Data / schema / migration: schema diff, data movement, rollout stages, rollback, integrity checks.
 * Documentation: audience, changed guidance, source of truth, follow-up doc gaps.
 * Design / frontend UI: before/after UI, interaction states, responsive behavior, accessibility checks.
-* API / integration: contract changes, request/response flow, compatibility, consumers.
+* UI contract / integration: routes, Turbo Frame/Stream target ids and views affected, request/response flow, external integrations.
 * Test-only change: coverage map, scenarios added, confidence gained, remaining blind spots.
 
 ## Design Requirements

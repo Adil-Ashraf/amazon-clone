@@ -175,7 +175,7 @@ class Article < ApplicationRecord
   end
 
   def can_be_edited_by?(user)
-    author == user || user.admin?
+    author == user && !published?
   end
 end
 ```
@@ -224,7 +224,7 @@ class Profile < ApplicationRecord
   validates :location, length: { maximum: 100 }
 
   delegate :email, :username, to: :user
-  delegate :admin?, to: :user, prefix: true
+  delegate :name, to: :user, prefix: true
 
   def full_name
     "#{first_name} #{last_name}".strip.presence || username

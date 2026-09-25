@@ -37,8 +37,8 @@ end
 
 # Use up/down when `change` cannot infer the reverse
 class ChangeColumnType < ActiveRecord::Migration[8.1]
-  def up   = change_column :items, :price, :decimal, precision: 10, scale: 2
-  def down = change_column :items, :price, :integer
+  def up   = change_column :products, :sku, :bigint
+  def down = change_column :products, :sku, :integer
 end
 ```
 
@@ -74,7 +74,7 @@ t.text    :description                         # unlimited text
 t.citext  :email                               # case-insensitive (extension)
 t.integer :count                               # integer
 t.bigint  :external_id                         # bigint (external IDs)
-t.decimal :price, precision: 10, scale: 2      # exact decimal
+t.integer :price_cents, null: false            # money: always integer cents
 t.datetime :published_at                       # timestamp with tz
 t.timestamps                                   # created_at + updated_at
 t.boolean :active, null: false, default: false

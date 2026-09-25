@@ -26,25 +26,18 @@ end
 ## From a Service
 
 ```ruby
-# app/services/submissions/create_service.rb
-module Submissions
-  class CreateService < ApplicationService
+# app/services/orders/checkout_service.rb (sketch)
+module Orders
+  class CheckoutService
     def call
-      if submission.save
-        # Enqueue metrics calculation
-        CalculateMetricsJob.perform_later(submission.entity_id)
-
-        # Notify the owner
-        SendNotificationJob.perform_later(
-          submission.entity.owner_id,
-          "new_submission",
-          { submission_id: submission.id }
-        )
-
-        success(submission)
-      else
-        failure(submission.errors)
+      order = nil
+      ActiveRecord::Base.transaction do
+        order = create_order_and_items!
       end
+
+      # Enqueue after the transaction commits, passing ids, not objects
+      OrderConfirmationJob.perform_later(order.id)
+      order
     end
   end
 end

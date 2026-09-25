@@ -14,21 +14,25 @@ effort: high
 
 # Modern Rails 8 Architecture Patterns
 
+This app is a full-stack monolith: ERB views, Turbo Frames/Streams, Stimulus
+via importmap, Tailwind v4, Pundit, services in `app/services`.
+`.claude/rules/00-project-precedence.md` is the authority.
+
 ## Architecture Decision Tree
 
 ```
 Where should this code go?
 |
-+- Response shaping?             -> Serializer (@controller-agent)
++- Response shaping?              -> View / partial / helper (@view-agent);
+|                                    Turbo Stream template for partial page updates
++- Client-side behavior?          -> Stimulus controller (@view-agent)
 +- Complex business logic?        -> Service Object (@service-agent)
 +- Complex database query?        -> Query Object (@query-agent)
 +- Shared behavior across models? -> Concern (/rails-concern skill)
 +- Authorization logic?           -> Policy (@policy-agent)
-+- Multi-record workflow?         -> Use case / command (@service-agent)
++- Multi-record workflow?         -> Service with a transaction (@service-agent)
 +- Async/background work?         -> Job (@job-agent, /solid-queue-setup skill)
-+- Cross-component call?          -> Public facade (Accounts::Api, ...)
 +- Transactional email?           -> Mailer (@mailer-agent)
-+- Real-time/WebSocket?           -> Channel (/action-cable-patterns skill)
 +- Data validation only?          -> Model (@model-agent)
 +- HTTP request/response only?    -> Controller (@controller-agent)
 ```
@@ -37,17 +41,16 @@ Where should this code go?
 
 | Layer | Responsibility | Should NOT contain |
 |-------|---------------|-------------------|
-| **Controller** | HTTP, params, response | Business logic, queries |
-| **Model** | Data, validations, relations | Display logic, HTTP |
-| **Service** | Business logic, orchestration | HTTP, display logic |
+| **Controller** | HTTP, params, choosing a response (HTML / Turbo Stream) | Business logic, queries beyond loading what the view needs |
+| **Model** | Data, validations, relations, simple predicates | Display logic, HTTP |
+| **Service** | Business logic, orchestration, transactions | HTTP, display logic |
 | **Query** | Complex database queries | Business logic |
-| **Serializer** | JSON shaping, approved fields | Business logic, queries |
-| **Policy** | Authorization rules | Business logic |
-| **Component** | Reusable UI encapsulation | Business logic |
+| **Policy** | Authorization rules (owner / other user / guest) | Business logic |
+| **View / partial** | HTML markup, Turbo Frame/Stream targets | Queries, business rules |
+| **Helper** | Formatting (`format_price_cents`), small markup builders | Business logic, queries |
+| **Stimulus controller** | Progressive client-side behavior | Business rules, HTML string building |
 | **Job** | Async processing | HTTP, display logic |
-| **Form** | Complex form handling | Persistence logic |
 | **Mailer** | Email composition | Business logic |
-| **Channel** | WebSocket communication | Business logic |
 
 ## When NOT to Abstract
 
@@ -56,16 +59,18 @@ Where should this code go?
 | Simple CRUD (< 10 lines) | Keep in controller | Service object |
 | Used only once | Inline the code | Abstraction |
 | Simple query with 1-2 conditions | Model scope | Query object |
+| Two services | Plain classes | `ApplicationService` base class |
 
 ## When TO Abstract
 
 | Signal | Action |
 |--------|--------|
-| Same code in 3+ places | Extract to concern/service |
+| Same code in 3+ places | Extract to concern/service/partial |
 | Controller action > 15 lines | Extract to service |
 | Model > 300 lines | Extract concerns |
 | Complex conditionals | Extract to policy/service |
 | Query joins 3+ tables | Extract to query object |
+| Same markup in 3+ views | Extract to `app/views/shared/` partial |
 
 See /extraction-timing skill for detailed extraction guidance.
 
@@ -74,63 +79,63 @@ See /extraction-timing skill for detailed extraction guidance.
 ### Skinny Controllers
 
 ```ruby
-# GOOD: Thin controller delegates to service
-class OrdersController < ApplicationController
+# GOOD: thin controller delegates to a service and rescues its errors
+class CheckoutsController < ApplicationController
   def create
-    result = Orders::CreateService.call(user: current_user, params: order_params)
-    if result.success?
-      redirect_to result.data, notice: t(".success")
-    else
-      flash.now[:alert] = result.error
-      render :new, status: :unprocessable_entity
-    end
+    order = Orders::CheckoutService.new(user: current_user, shipping_attributes: shipping_params).call
+    redirect_to order_path(order), notice: "Order placed! Thanks for your purchase."
+  rescue Orders::CheckoutService::InsufficientStockError => e
+    render_new_with_error(e.message) # 422
   end
 end
 ```
 
-### Result Objects for Services
+### Services Raise Namespaced Errors
 
-All services return a consistent Result object:
+Services return the record they produce and raise namespaced errors for
+domain failures (`Orders::CheckoutService::EmptyCartError`). Use a
+`Data.define` result only for multi-part outcomes.
+
+### Per-User Isolation by Default
 
 ```ruby
-Result = Data.define(:success, :data, :error) do
-  def success? = success
-  def failure? = !success
+# GOOD: scoped through the signed-in user; another user's order is a 404
+def show
+  @order = current_user.orders.find(params[:id])
+  authorize @order
 end
 ```
 
-### Multi-Tenancy by Default
+### Turbo Streams for In-Place Updates
 
-```ruby
-# GOOD: Scoped through account
-def index
-  @events = current_account.events.recent
-end
+```erb
+<%# app/views/cart_items/_sync.turbo_stream.erb %>
+<%= turbo_stream.replace "cart_count" do %>
+  <%= render "shared/cart_count_badge" %>
+<% end %>
 ```
 
 ## Rails 8 Specific Features
 
 | Feature | Purpose | Skill/Agent |
 |---------|---------|-------------|
-| Authentication | `has_secure_password` generator | /authentication-flow |
+| Authentication | `has_secure_password` + `User.authenticate_by` | /authentication-flow |
 | Background Jobs | Solid Queue (database-backed) | /solid-queue-setup, @job-agent |
-| Real-time | Action Cable + Solid Cable | /action-cable-patterns |
 | Caching | Solid Cache (database-backed) | /caching-strategies |
-| Assets | Propshaft + Import Maps | (built-in) |
-| Deployment | Kamal 2 + Thruster | (built-in) |
+| Frontend | Turbo + Stimulus via importmap, Tailwind v4 | @view-agent |
+| Assets | Propshaft | (built-in) |
+| Deployment | Railway, via the repo's `Dockerfile` | (built-in) |
 
 ## Testing Strategy by Layer
 
 | Layer | Test Type | Focus |
 |-------|-----------|-------|
-| Model | Unit | Validations, scopes, methods |
-| Service | Unit | Business logic, edge cases |
-| Query | Unit | Query results, tenant isolation |
-| Serializer | Unit | Approved fields, sensitive-field exclusion |
-| Controller | Request | Integration, HTTP flow |
-| Component | Component | Rendering, variants |
-| Policy | Unit | Authorization rules |
-| System | E2E | Critical user paths |
+| Model | Model spec | Validations (Shoulda Matchers), scopes, predicates |
+| Service | Service spec | Business logic, error classes, rollback |
+| Query | Query spec | Results, per-user isolation |
+| Policy | Policy spec | Owner / other user / guest |
+| Controller | Request spec | HTML + Turbo Stream flow, authn/authz, status, targets |
+| System | Capybara | A few critical browser flows |
 
 ## New Feature Checklist
 
@@ -138,11 +143,10 @@ end
 2. **Policy** - Add authorization rules (@policy-agent)
 3. **Service** - Create for complex logic (@service-agent)
 4. **Query** - Add for complex queries (@query-agent)
-5. **Controller** - Keep it thin (@controller-agent)
-6. **Serializer** - Shape the API response (@controller-agent)
-7. **rswag** - Update the OpenAPI contract when the public API changes
-8. **Mailer** - Add transactional emails (@mailer-agent)
-9. **Job** - Add background processing (@job-agent)
+5. **Controller** - Keep it thin, HTML + Turbo Stream (@controller-agent)
+6. **Views** - Partials, Turbo Frame/Stream targets, Stimulus (@view-agent, read `docs/DESIGN.md`)
+7. **Mailer** - Add transactional emails (@mailer-agent)
+8. **Job** - Add background processing (@job-agent)
 
 ## References
 
@@ -150,4 +154,4 @@ end
 - See [service-patterns.md](references/service-patterns.md) for service object patterns
 - See [query-patterns.md](references/query-patterns.md) for query object patterns
 - See [error-handling.md](references/error-handling.md) for error handling strategies
-- See [testing-strategy.md](references/testing-strategy.md) for comprehensive testing
+- See [testing-strategy.md](references/testing-strategy.md) for the testing pyramid

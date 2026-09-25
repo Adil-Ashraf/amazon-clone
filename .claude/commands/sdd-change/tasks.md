@@ -39,7 +39,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    1. **Migration/schema tasks** (if database changes needed)
    2. **Implementation tasks** (one per file or logical unit of change)
    3. **Test tasks** (write or update specs for changed behavior)
-   4. **Validation task** (always last): `Run bundle exec rspec && bundle exec rubocop -a`
+   4. **Validation task** (always last): `Run bin/docker-dev test && bin/docker-dev lint -a`
 
    Task format rules:
    - Format: `- [ ] T001 Description with exact file path`

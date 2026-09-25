@@ -42,13 +42,13 @@ If not reviewed, recommend running `/feature-spec-review` first.
 - **Models:** New models or modifications?
 - **Migrations:** Database changes?
 - **Services:** Business logic to extract?
-- **Forms:** Complex multi-model forms?
 - **Controllers:** New actions or modifications?
 - **Policies:** Authorization rules?
 - **Jobs:** Background processing?
 - **Mailers:** Email notifications?
-- **Components:** Reusable UI components?
-- **Views:** New views or modifications?
+- **Views:** New views, partials (`app/views/shared/` for reusable UI) or Turbo Stream templates?
+- **Stimulus:** New client-side behavior?
+- **UI contract:** Routes, Turbo Frame/Stream target ids and views affected?
 
 ### Step 3: Create TDD Implementation Plan
 
@@ -63,11 +63,11 @@ For each component:
 ### Step 4: Sequence Tasks by Dependencies
 
 1. Database layer (migrations, models)
-2. Business logic (services, forms)
+2. Business logic (services)
 3. Authorization (policies)
 4. Background jobs (if needed)
-5. Controllers (endpoints)
-6. Views/Components (UI)
+5. Controllers (HTML + Turbo Stream actions)
+6. Views, partials, Stimulus (UI — read docs/DESIGN.md first)
 7. Mailers (notifications)
 
 ### Step 5: Create Incremental PR Plan
@@ -103,7 +103,7 @@ Break down into small PRs (50-200 lines each):
 2. Write model tests (RED)
 3. Implement model (GREEN)
 **Files:** [list]
-**Verification:** bundle exec rspec spec/models/
+**Verification:** bin/docker-dev test spec/models/
 
 ### PR #2: Business Logic
 [... same structure ...]
@@ -115,8 +115,8 @@ Break down into small PRs (50-200 lines each):
 - Models: Unit tests (validations, scopes, associations)
 - Services: Unit tests (success/failure, edge cases)
 - Policies: Policy tests (all personas and actions)
-- Controllers: Request specs (all actions and status codes)
-- Components: Component specs (rendering, variants)
+- Controllers: Request specs (all actions, status codes, Turbo Stream targets, 404 for other users' records)
+- Critical browser flows: System specs (Capybara)
 
 ## Security Considerations
 - [ ] Authorization with Pundit

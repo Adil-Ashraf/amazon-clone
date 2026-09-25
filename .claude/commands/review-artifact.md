@@ -205,7 +205,7 @@ If a required understanding goal has no source material, keep an appropriate sec
 
 Use review-specific sections when they improve comprehension:
 
-* Code review: correctness findings, maintainability risks, API contracts, test coverage, file-level review focus.
+* Code review: correctness findings, maintainability risks, UI contract (routes, Turbo Frame/Stream target ids, views affected), test coverage, file-level review focus.
 * Security / privacy review: assets, trust boundaries, exploit path, mitigations, residual risk, disclosure constraints.
 * Accessibility review: affected flows, WCAG category when available, assistive technology impact, retest steps.
 * Performance review: bottleneck, benchmark evidence, user impact, regression threshold, profiling next steps.
