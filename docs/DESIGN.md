@@ -165,5 +165,5 @@ Inter only (400 / 500 / 600 / 700), fallbacks `ui-sans-serif, system-ui`.
 | Tax line              | No tax rules; a made-up number would be wrong. |
 | Forgot password       | Needs a mailer flow; the link explains the demo account instead. |
 | Account settings      | No editable settings beyond what signup collects. |
-| Image gallery thumbnails | One verified photo per product; repeating it as thumbnails adds nothing. |
+| Image gallery thumbnails | One photo per product; repeating it as thumbnails adds nothing. |
 | Sponsored placements, mega-menu, 6-column grid | Work against clarity. |

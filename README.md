@@ -65,8 +65,8 @@ components and page layouts, and where each UI signal comes from (§6).
   last shipping address
 
 **Catalog**
-- 8 categories and 110 products, with a designed fallback tile when a product
-  has no verified photo
+- 8 categories and 110 products, each with a photo; a designed fallback tile
+  shows only if a photo fails to load
 - Full-text search on name and description (Postgres `tsearch`, prefix match)
 - Filters: category, price range, in stock only, on sale, minimum rating
 - Sorting: featured, price (low→high / high→low), newest, top rated, and best
@@ -153,8 +153,11 @@ components and page layouts, and where each UI signal comes from (§6).
 | Newsletter | `newsletter_subscriptions` (unique email) |
 
 **Seed data** (`db/seeds.rb`, `db/seeds/storefront.rb`; safe to re-run):
-- **Catalog:** 110 products in 8 categories, with verified Unsplash photos for
-  98 of them. 23 products carry a compare-at price.
+- **Catalog:** 110 products in 8 categories, each with an Unsplash photo
+  (`db/seeds/product_images.yml`). 98 show that kind of product; 12 (nine
+  books and three items with no clean product shot) use a representative
+  photo, because book covers are copyrighted. 23 products carry a
+  compare-at price.
 - **Reviews:** these come from **12 seeded buyer accounts**. Each buyer has a
   delivered order containing every product they review, so the seeded data
   follows the same buyer rule the app enforces. Their passwords are random, so

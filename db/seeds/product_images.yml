@@ -1,8 +1,8 @@
-# Verified Unsplash photos, one per product (Unsplash License).
+# Unsplash photos, one per product (Unsplash License). Applied by db/seeds.rb.
 # Each photo was checked by eye to show that kind of product as the main
 # subject, with no watermark or large text, not dominated by a face, and
-# not reused. Products missing here have no verified photo and keep the
-# designed tile (ProductsHelper#product_image_tag). Applied by db/seeds.rb.
+# not reused. Every product is listed; the designed tile
+# (ProductsHelper#product_image_tag) only shows if a photo fails to load.
 
 "Wireless Noise-Cancelling Headphones": "https://images.unsplash.com/photo-1628116709703-c1c9ad550d36?w=1200&q=80&auto=format&fit=crop"
 "4K Ultra HD Smart TV 55-inch": "https://images.unsplash.com/photo-1567690187548-f07b1d7bf5a9?w=1200&q=80&auto=format&fit=crop"
@@ -102,3 +102,20 @@
 "Sticky Notes Assorted Colors 12-Pack": "https://images.unsplash.com/photo-1580934174026-8142803ebb5b?w=1200&q=80&auto=format&fit=crop"
 "Bluetooth Label Maker": "https://images.unsplash.com/photo-1783099779589-fd12bde5c2aa?w=1200&q=80&auto=format&fit=crop"
 "Executive Ballpoint Pen Set": "https://images.unsplash.com/photo-1672611492365-286b9bb1c2db?w=1200&q=80&auto=format&fit=crop"
+
+# Representative photos. No free photo of these exact products (book covers
+# are copyrighted; the others have no clean product shot on Unsplash), so
+# each uses a generic Unsplash photo of that kind of item, checked by eye:
+# no readable titles or brand names, not reused elsewhere in this file.
+"The Midnight Library": "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?w=1200&q=80&auto=format&fit=crop"
+"Atomic Habits": "https://images.unsplash.com/photo-1543002588-bfa74002ed7e?w=1200&q=80&auto=format&fit=crop"
+"A Brief History of Time": "https://images.unsplash.com/photo-1591951425600-d09958978584?w=1200&q=80&auto=format&fit=crop"
+"The Silent Patient": "https://images.unsplash.com/photo-1705721357357-ab87523248f7?w=1200&q=80&auto=format&fit=crop"
+"Educated: A Memoir": "https://images.unsplash.com/photo-1529589941132-43606325dfb4?w=1200&q=80&auto=format&fit=crop"
+"Where the Crawdads Sing": "https://images.unsplash.com/photo-1517770413964-df8ca61194a6?w=1200&q=80&auto=format&fit=crop"
+"The Very Hungry Caterpillar": "https://images.unsplash.com/photo-1558244662-0f555a954f11?w=1200&q=80&auto=format&fit=crop"
+"Dune": "https://images.unsplash.com/photo-1513185041617-8ab03f83d6c5?w=1200&q=80&auto=format&fit=crop"
+"Quiet: The Power of Introverts": "https://images.unsplash.com/photo-1692742593559-8ffd0e3fd8b1?w=1200&q=80&auto=format&fit=crop"
+"Electric Nail File and Buffer Kit": "https://images.unsplash.com/photo-1779636198585-658170ee0283?w=1200&q=80&auto=format&fit=crop"
+"Bluetooth Car FM Transmitter": "https://images.unsplash.com/photo-1666739165788-ad4146aad813?w=1200&q=80&auto=format&fit=crop"
+"Paper Shredder Cross-Cut": "https://images.unsplash.com/photo-1715522594847-67c90b5b8667?w=1200&q=80&auto=format&fit=crop"
