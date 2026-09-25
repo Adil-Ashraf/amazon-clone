@@ -1,7 +1,7 @@
 ---
 paths:
   - "app/**"
-  - "test/**"
+  - "spec/**"
   - "config/**"
   - "db/**"
 ---
@@ -43,16 +43,22 @@ floats or decimals for money. Display it only via `format_price_cents`.
 
 ## Tests
 
-Tests are **Minitest + fixtures** in `test/` — NOT RSpec, NOT FactoryBot.
+Tests are **RSpec + FactoryBot + Shoulda Matchers + Capybara** in `spec/`.
 
-- Services: `test/services/`; request flows: `test/integration/`
-  (`ActionDispatch::IntegrationTest`, `sign_in_as(user)` from `test_helper.rb`);
-  browser flows: `test/system/`.
-- Reuse and extend `test/fixtures/*.yml` rather than building records inline.
+- Models: `spec/models/` (Shoulda Matchers for validations and associations);
+  services: `spec/services/`; controller flows: `spec/requests/` (HTML and
+  Turbo Stream, `sign_in_as(user)`); browser flows: `spec/system/`
+  (`sign_in_via_ui(user)`). Helpers live in `spec/support/`.
+- Build records with the factories in `spec/factories/` and their traits
+  (`with_cart`, `low_stock`, `sold_out`, `electronics`, `books`).
+- House rule: perform the action in a `before` block through a named helper;
+  each `it` holds expectations only. Transition matchers (`change`,
+  `not_to change`, `raise_error`) are the exception — the action goes inside
+  the block. Assert on status, redirects, DB state, `turbo-stream[target]` and
+  record links — never on CSS classes or copy.
 
-Any rule in `.claude/rules/` or `.claude/agents/` that assumes RSpec, `spec/`,
-FactoryBot, or an API-only app (JSON-only responses, serializers, no views)
-**does not apply** to this repo.
+Any rule in `.claude/rules/` or `.claude/agents/` that assumes an API-only app
+(JSON-only responses, serializers, no views) **does not apply** to this repo.
 
 ## UI work
 

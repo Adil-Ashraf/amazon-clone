@@ -95,8 +95,8 @@ bin/docker-dev seed       # in a second terminal: 8 categories, 110 products, a 
 
 Visit `http://localhost:3000` and log in with `demo@example.com` / `password123`.
 
-Other commands: `bin/docker-dev test | system | lint | security | console | bash | down`.
-Postgres is exposed on host port 5433 so it won't clash with a local install.
+Other commands: `bin/docker-dev test | system | lint | security | console | bash | down`
+(see [Testing](#testing)). Postgres is exposed on host port 5433 so it won't clash with a local install.
 
 ### Without Docker
 
@@ -115,6 +115,26 @@ Visit `http://localhost:3000` and log in with the seeded demo account — no nee
 email:    demo@example.com
 password: password123
 ```
+
+## Testing
+
+The suite is **RSpec** with **FactoryBot**, **Shoulda Matchers** and **Capybara**, all in `spec/`:
+
+- `spec/models` — validations and associations (Shoulda Matchers) plus model methods
+- `spec/services` — `Carts::CartService` and `Orders::CheckoutService` (stock checks, quantity merging, price snapshotting, rollback on failure)
+- `spec/requests` — every controller flow over HTML and Turbo Stream, including authorization (another user's cart item or order is a 404)
+- `spec/system` — the guest browsing and purchase flows in headless Chrome
+- `spec/factories` — minimal valid factories with `low_stock` / `sold_out` / `with_cart` traits
+
+```bash
+bin/docker-dev test       # everything except system specs
+bin/docker-dev system     # system specs, against the selenium/standalone-chromium service
+bin/docker-dev lint       # RuboCop
+bin/docker-dev security   # Brakeman
+```
+
+Without Docker: `bundle exec rspec --exclude-pattern "spec/system/**/*_spec.rb"` and `bundle exec rspec spec/system`.
+Failed system specs save screenshots to `tmp/screenshots`.
 
 ## Agent Usage
 

@@ -21,13 +21,16 @@ case "$command" in
   up)       docker compose up "$@" ;;
   down)     docker compose down "$@" ;;
   console)  run web bin/rails console "$@" ;;
-  test)     run_test web bash -c 'bin/rails db:prepare && bin/rails test "$@"' _ "$@" ;;
+  test)
+    run_test web bash -c 'bin/rails db:test:prepare &&
+      bundle exec rspec --exclude-pattern "spec/system/**/*_spec.rb" "$@"' _ "$@"
+    ;;
   system)
     docker compose --profile test up -d --wait chrome
     run_test --name "$SYSTEM_TEST_HOST" \
       -e SELENIUM_REMOTE_URL=http://chrome:4444/wd/hub \
-      -e CAPYBARA_APP_HOSTNAME="$SYSTEM_TEST_HOST" \
-      web bash -c 'bin/rails db:prepare && bin/rails test:system "$@"' _ "$@"
+      -e APP_HOST="$SYSTEM_TEST_HOST" \
+      web bash -c 'bin/rails db:test:prepare && bundle exec rspec spec/system "$@"' _ "$@"
     ;;
   lint)     run web bin/rubocop "$@" ;;
   security) run web bin/brakeman --no-pager "$@" ;;
