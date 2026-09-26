@@ -5,15 +5,12 @@ module ApplicationHelper
     number_to_currency(cents / 100.0, precision: trim && (cents % 100).zero? ? 0 : 2)
   end
 
-  # The .input component class (docs/DESIGN.md) for text/email/password/number
-  # fields. Callers add their own width.
-  def input_classes
-    "input"
-  end
-
-  # The .card component class (docs/DESIGN.md) for every card-like container.
-  # Callers add their own padding/spacing/layout classes.
-  def card_classes(extra = nil)
-    [ "card", extra ].compact.join(" ")
+  # The .pill status badge (docs/DESIGN.md): a dot plus a label, e.g. stock
+  # or order status. color_classes sets the tone ("bg-success-soft text-success").
+  def status_pill(text, color_classes)
+    content_tag :span, class: "pill #{color_classes}" do
+      concat content_tag(:span, "", class: "size-1.5 rounded-full bg-current")
+      concat text
+    end
   end
 end

@@ -7,7 +7,7 @@
     to_free_shipping = Order::FREE_SHIPPING_THRESHOLD_CENTS - subtotal
     units = cart_items.sum(&:quantity)
   %>
-  <div class="grid gap-8 pb-24 lg:grid-cols-[1fr_380px] lg:items-start lg:gap-10 lg:pb-0">
+  <div class="grid gap-8 lg:grid-cols-[1fr_380px] lg:items-start lg:gap-10">
     <div class="min-w-0">
       <div class="mb-4 rounded-2xl border border-line bg-surface p-4 sm:p-5">
         <p class="flex items-center gap-2 text-sm font-medium">
@@ -63,15 +63,9 @@
   </div>
 
   <%# Mobile: total and checkout always in reach. %>
-  <div class="sticky-action-bar fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur lg:hidden">
-    <div class="flex items-center gap-4">
-      <div class="flex-1">
-        <p class="text-xs text-muted">Total</p>
-        <p class="price text-lg"><%= format_price_cents(total) %></p>
-      </div>
-      <%= link_to "Checkout", new_checkout_path, class: "btn-primary btn-lg" %>
-    </div>
-  </div>
+  <%= render layout: "shared/sticky_action_bar", locals: { label: "Total", amount_cents: total, hidden_from: :lg } do %>
+    <%= link_to "Checkout", new_checkout_path, class: "btn-primary btn-lg" %>
+  <% end %>
 <% else %>
   <%= render "shared/empty_state", icon: :cart,
         title: "Your cart is empty",

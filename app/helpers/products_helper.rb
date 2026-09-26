@@ -1,11 +1,11 @@
 module ProductsHelper
   def stock_badge(product)
     if product.out_of_stock?
-      stock_badge_pill("Sold out", "bg-danger-soft text-danger")
+      status_pill("Sold out", "bg-danger-soft text-danger")
     elsif product.low_stock?
-      stock_badge_pill("Only #{product.stock} left", "bg-warn-soft text-warn-strong")
+      status_pill("Only #{product.stock} left", "bg-warn-soft text-warn-strong")
     else
-      stock_badge_pill("In stock", "bg-success-soft text-success")
+      status_pill("In stock", "bg-success-soft text-success")
     end
   end
 
@@ -75,6 +75,7 @@ module ProductsHelper
   IMAGE_SIZES = {
     card: "(min-width: 1280px) 290px, (min-width: 1024px) 23vw, (min-width: 768px) 31vw, 48vw",
     detail: "(min-width: 1024px) 600px, (min-width: 768px) 50vw, 100vw",
+    hero: "(min-width: 1024px) 300px, (min-width: 640px) 45vw, 100vw",
     thumb: "120px"
   }.freeze
   UNSPLASH_WIDTHS = [ 400, 600, 900, 1200 ].freeze
@@ -131,11 +132,7 @@ module ProductsHelper
   # stays hidden (and out of the accessibility tree) until the photo fails.
   def product_tile(product, name:, covered:)
     category = product.category
-    icon_inner = CategoriesHelper::ICON_PATHS.fetch(category.icon_key, CategoriesHelper::ICON_PATHS[Category::DEFAULT_ICON_KEY])
-
-    glyph = content_tag(:svg, icon_inner.html_safe,
-      class: "size-[34%] text-brand-strong/80", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor",
-      "stroke-width": "1", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true")
+    glyph = category_icon(category, css_class: "size-[34%] text-brand-strong/80", stroke_width: 1)
 
     label = content_tag(:span, product.name.split.first(3).join(" "),
       class: "absolute bottom-3 left-3 right-3 hidden truncate text-sm font-medium text-muted-strong @[12rem]:block",
@@ -149,12 +146,5 @@ module ProductsHelper
       hidden: covered,
       class: "flex w-full h-full items-center justify-center #{TILE_BACKGROUNDS[category.id.to_i % TILE_BACKGROUNDS.size]}",
       data: (covered ? { product_image_target: "tile" } : nil)
-  end
-
-  def stock_badge_pill(text, color_classes)
-    content_tag :span, class: "pill #{color_classes}" do
-      concat content_tag(:span, "", class: "size-1.5 rounded-full bg-current")
-      concat text
-    end
   end
 end

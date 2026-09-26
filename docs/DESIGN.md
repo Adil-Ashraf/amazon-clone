@@ -122,7 +122,7 @@ Inter only (400 / 500 / 600 / 700), fallbacks `ui-sans-serif, system-ui`.
 | `.eyebrow` `.h1–.h3` `.price` `.link` `.quiet-link` | Type roles.                                   |
 | `.drawer` (`<dialog>`)     | Slide-over for mobile nav and filters (`drawer_controller`).           |
 | `products/_product_card`   | Image (1:1) with heart and small discount badge; category, name, rating, price in ink (a struck-through "was" price marks a sale), low-stock note, full-width `.btn-card`. Hover: lift 2px, image scales 1.04. |
-| `product_image_tag`        | Unsplash photos get a 400–1200w `srcset` (default `src` 600w) and a `sizes:` preset (`:card`, `:detail`, `:thumb`). A neutral `subtle` well shows while loading; the icon tile appears only if the photo fails. |
+| `product_image_tag`        | Unsplash photos get a 400–1200w `srcset` (default `src` 600w) and a `sizes:` preset (`:card`, `:detail`, `:hero`, `:thumb`). A neutral `subtle` well shows while loading; the icon tile appears only if the photo fails. |
 | `products/_product_row`    | List-view version of the card.                                         |
 | `products/_wishlist_toggle`, `_quick_add` | Updated in place by Turbo Streams. They use **class** targets (`targets=".wishlist_product_1"`) because one product can appear in several rails on a page. |
 | `rating_summary`, `rating_stars`, `price_tag`, `discount_badge`, `stock_badge` | `ProductsHelper`. Rating shows nothing but "No reviews yet" when there are none. |

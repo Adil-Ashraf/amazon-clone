@@ -1,8 +1,8 @@
 import { Controller } from "@hotwired/stimulus"
 import { Turbo } from "@hotwired/turbo-rails"
 
-// Typeahead for the header search box (every page except the catalog, where
-// the results grid itself updates as you type). After a pause in typing it
+// Typeahead for the header search boxes, on every page (on the catalog it
+// runs alongside live_search_controller.js). After a pause in typing it
 // points a Turbo Frame at /search_suggestions?query=..., which the server
 // fills from the same pg_search scope as the catalog. Setting a new src
 // makes Turbo abort the previous request, so an older response can never

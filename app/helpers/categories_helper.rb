@@ -55,11 +55,11 @@ module CategoriesHelper
     SVG
   }.freeze
 
-  def category_icon(category, css_class: "w-5 h-5")
+  def category_icon(category, css_class: "w-5 h-5", stroke_width: 2)
     inner = ICON_PATHS.fetch(category.icon_key, ICON_PATHS[Category::DEFAULT_ICON_KEY])
     content_tag(:svg, inner.html_safe,
       class: css_class, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor",
-      "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round",
+      "stroke-width": stroke_width, "stroke-linecap": "round", "stroke-linejoin": "round",
       "aria-hidden": "true")
   end
 end

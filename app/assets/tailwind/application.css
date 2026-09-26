@@ -262,6 +262,20 @@ turbo-frame[busy] {
   .toast { animation: toast-in 200ms ease-out; }
 }
 
+/* While a sticky action bar (shared/_sticky_action_bar) shows, the page ends
+   with room for it, so it never covers the footer. */
+@media (max-width: 767px) {
+  body:has(.sticky-action-bar) {
+    padding-bottom: 5rem;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  body:has(.sticky-action-bar[data-hidden-from="lg"]) {
+    padding-bottom: 5rem;
+  }
+}
+
 /* On phones, toasts sit above the sticky action bars (product page, cart). */
 @media (max-width: 639px) {
   body:has(.sticky-action-bar) #toasts {

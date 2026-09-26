@@ -28,10 +28,7 @@ module OrdersHelper
   ].freeze
 
   def order_status_pill(order)
-    content_tag :span, class: "pill #{STATUS_PILL_CLASSES.fetch(order.status)}" do
-      concat content_tag(:span, "", class: "size-1.5 rounded-full bg-current")
-      concat STATUS_LABELS.fetch(order.status)
-    end
+    status_pill(STATUS_LABELS.fetch(order.status), STATUS_PILL_CLASSES.fetch(order.status))
   end
 
   # [[label, reached?, current?], ...]

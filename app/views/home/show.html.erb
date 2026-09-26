@@ -38,7 +38,7 @@
       <% lead, *rest = @hero_products %>
       <div class="relative grid min-h-[320px] grid-cols-2 grid-rows-2 gap-3 p-3 sm:min-h-[420px] sm:gap-4 sm:p-4 lg:p-5 lg:pl-0">
         <%= link_to product_path(lead), class: "group relative col-span-2 row-span-2 overflow-hidden rounded-2xl bg-surface #{'sm:col-span-1' if rest.any?} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" do %>
-          <%= product_image_tag lead, loading: "eager", sizes: :detail, css_class: "motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-[1.03]" %>
+          <%= product_image_tag lead, loading: "eager", sizes: :hero, css_class: "motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-[1.03]" %>
           <div class="absolute inset-x-3 bottom-3 rounded-xl bg-surface/95 p-3 shadow-float backdrop-blur sm:inset-x-4 sm:bottom-4">
             <p class="text-xs font-medium uppercase tracking-wider text-muted">Top rated</p>
             <p class="mt-0.5 truncate text-sm font-semibold text-ink"><%= lead.name %></p>

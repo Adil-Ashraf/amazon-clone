@@ -1,6 +1,7 @@
 <%# locals: (nav_items:) %>
 <%# Everything the desktop header shows, for small screens. A <dialog> opened
     by drawer_controller on the header. %>
+<% row_class = "flex min-h-11 items-center gap-3 rounded-btn px-3 text-[15px] hover:bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" %>
 <dialog id="mobile_nav" class="drawer drawer-left lg:hidden" aria-label="Menu"
         data-drawer-target="dialog" data-action="click->drawer#closeOnBackdrop">
   <div class="flex h-full flex-col">
@@ -29,7 +30,7 @@
           <% nav_items.each do |label, path, active| %>
             <li>
               <%= link_to label, path, "aria-current": (active ? "page" : nil),
-                    class: "flex min-h-11 items-center rounded-btn px-3 text-[15px] font-medium hover:bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand #{active ? 'bg-brand-soft text-brand-strong' : 'text-ink'}" %>
+                    class: "#{row_class} font-medium #{active ? 'bg-brand-soft text-brand-strong' : 'text-ink'}" %>
             </li>
           <% end %>
         </ul>
@@ -39,7 +40,7 @@
           <% nav_categories.sort_by(&:name).each do |category| %>
             <li>
               <%= link_to products_path(category: category.slug),
-                    class: "flex min-h-11 items-center gap-3 rounded-btn px-3 text-[15px] text-ink hover:bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" do %>
+                    class: "#{row_class} text-ink" do %>
                 <%= category_icon(category, css_class: "size-[18px] text-muted") %><%= category.name %>
               <% end %>
             </li>
@@ -51,7 +52,7 @@
           <% [ [ "My Account", account_path, :user ], [ "Orders", orders_path, :package ], [ "Wishlist", wishlist_items_path, :heart ],
                [ "Help", page_path("help"), :support ], [ "Sell on Aisle Market", page_path("sell"), :tag ] ].each do |label, path, icon_name| %>
             <li>
-              <%= link_to path, class: "flex min-h-11 items-center gap-3 rounded-btn px-3 text-[15px] text-ink hover:bg-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand" do %>
+              <%= link_to path, class: "#{row_class} text-ink" do %>
                 <%= icon(icon_name, css_class: "size-[18px] text-muted") %><%= label %>
               <% end %>
             </li>

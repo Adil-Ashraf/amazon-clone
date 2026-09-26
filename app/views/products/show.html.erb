@@ -5,7 +5,7 @@
   free_shipping = @product.price_cents >= Order::FREE_SHIPPING_THRESHOLD_CENTS
 %>
 
-<div class="page py-6 lg:py-10 <%= 'pb-28 md:pb-10' unless @product.out_of_stock? %>">
+<div class="page py-6 lg:py-10">
   <nav aria-label="Breadcrumb" class="mb-6 text-sm text-muted">
     <ol class="flex flex-wrap items-center gap-1.5">
       <li><%= link_to "Home", root_path, class: "quiet-link text-muted" %></li>
@@ -62,7 +62,7 @@
                 <button type="button" data-quantity-stepper-target="decrement" data-action="quantity-stepper#decrement"
                         class="icon-btn rounded-l-btn rounded-r-none" aria-label="Decrease quantity"><%= icon(:minus, css_class: "size-4") %></button>
                 <%= f.number_field :quantity, value: 1, min: 1, max: max_quantity,
-                      data: { quantity_stepper_target: "input" },
+                      data: { quantity_stepper_target: "input", action: "quantity-stepper#render" },
                       class: "h-11 w-12 border-0 bg-transparent text-center text-[15px] font-semibold tabular-nums outline-none [appearance:textfield] focus:ring-0 [&::-webkit-inner-spin-button]:appearance-none" %>
                 <button type="button" data-quantity-stepper-target="increment" data-action="quantity-stepper#increment"
                         class="icon-btn rounded-l-none rounded-r-btn" aria-label="Increase quantity"><%= icon(:plus, css_class: "size-4") %></button>
@@ -162,13 +162,7 @@
 
 <%# Mobile: keep the main action in reach while reading the page. %>
 <% unless @product.out_of_stock? %>
-  <div class="sticky-action-bar fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 px-4 py-3 backdrop-blur md:hidden">
-    <div class="flex items-center gap-4">
-      <div class="min-w-0 flex-1">
-        <p class="truncate text-xs text-muted"><%= @product.name %></p>
-        <p class="price text-lg"><%= format_price_cents(@product.price_cents) %></p>
-      </div>
-      <button type="submit" form="add_to_cart_form" class="btn-primary btn-lg" data-turbo-submits-with="Adding…">Add to Cart</button>
-    </div>
-  </div>
+  <%= render layout: "shared/sticky_action_bar", locals: { label: @product.name, amount_cents: @product.price_cents, hidden_from: :md } do %>
+    <button type="submit" form="add_to_cart_form" class="btn-primary btn-lg" data-turbo-submits-with="Adding…">Add to Cart</button>
+  <% end %>
 <% end %>
