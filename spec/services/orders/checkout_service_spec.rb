@@ -109,6 +109,14 @@ RSpec.describe Orders::CheckoutService do
     end
   end
 
+  context "for a user without a cart" do
+    let(:user) { create(:user) }
+
+    it "raises EmptyCartError" do
+      expect { checkout }.to raise_error(described_class::EmptyCartError)
+    end
+  end
+
   context "with an empty cart" do
     it "raises EmptyCartError" do
       expect { checkout }.to raise_error(described_class::EmptyCartError)

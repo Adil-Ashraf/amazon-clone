@@ -9,15 +9,18 @@ module Orders
     end
 
     def call
-      cart = @user.cart
-      raise EmptyCartError, "Your cart is empty." if cart.cart_items.none?
-
-      order = nil
+      cart = @user.ensure_cart!
 
       ActiveRecord::Base.transaction do
+        # Lock the cart before reading its lines. A second checkout of the same
+        # cart (two tabs, a resubmitted form) waits here until the first one
+        # commits, then finds the cart empty instead of ordering it again.
+        cart.lock!
+        cart_items = cart.cart_items.includes(:product).order(:product_id).to_a
+        raise EmptyCartError, "Your cart is empty." if cart_items.empty?
+
         # Lock product rows in a stable order (by product_id) so two concurrent
         # checkouts touching overlapping products can't deadlock each other.
-        cart_items = cart.cart_items.includes(:product).order(:product_id).to_a
         cart_items.each { |cart_item| cart_item.product.lock! }
 
         cart_items.each do |cart_item|
@@ -40,10 +43,11 @@ module Orders
           product.decrement!(:stock, cart_item.quantity)
         end
 
-        cart.cart_items.destroy_all
+        # Only the lines that were ordered: one added from another tab after
+        # they were read stays in the cart instead of vanishing unbought.
+        cart_items.each(&:destroy!)
+        order
       end
-
-      order
     end
   end
 end

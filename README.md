@@ -134,9 +134,12 @@ components and page layouts, and where each UI signal comes from (§6).
     transaction.
   - `Reviews::CreateService`: enforces the buyer rule and updates the
     product's rating aggregates.
-- **Concurrency-safe checkout.** Product rows are locked in stable id order,
-  stock is re-validated under the lock and then decremented, so two checkouts
-  can't both buy the last unit. Concurrent cart adds retry on the unique index
+- **Concurrency-safe checkout.** The cart row is locked first, so a second
+  checkout of the same cart (two tabs, a resubmitted form) waits, then finds
+  the cart empty instead of placing a duplicate order. Product rows are then
+  locked in stable id order, stock is re-validated under the lock and
+  decremented, so two checkouts can't both buy the last unit. A threaded spec
+  covers the same-cart case. Concurrent cart adds retry on the unique index
   instead of raising an error.
 - **Money is integer cents** and is displayed only through
   `format_price_cents`. `OrderItem#price_cents` and `Order#shipping_cents` are
@@ -188,7 +191,7 @@ components and page layouts, and where each UI signal comes from (§6).
 
 ## Testing
 
-291 examples: 263 model, service, helper and request specs, plus 28 browser
+402 examples: 346 model, service, helper and request specs, plus 56 browser
 (system) specs.
 
 - `spec/models`, `spec/services`: validations, stock rules, price and shipping

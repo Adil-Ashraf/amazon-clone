@@ -70,6 +70,54 @@ RSpec.describe "Cart items", type: :request do
         end
       end
 
+      %w[0 -3 abc 1.5].each do |quantity|
+        context "with a quantity of #{quantity.inspect}" do
+          it "creates no line" do
+            expect { add_to_cart(product_id: product.id, quantity: quantity) }.not_to change(CartItem, :count)
+          end
+
+          context "after the request" do
+            before { add_to_cart(product_id: product.id, quantity: quantity) }
+
+            it { expect(response).to have_http_status(:ok) }
+
+            it "shows an error on the product page" do
+              expect(response_document.at_css('turbo-stream[target="add_to_cart_status"] template').text.strip).to be_present
+            end
+          end
+        end
+      end
+
+      context "with a negative quantity for a product already in the cart" do
+        let!(:line) { create(:cart_item, cart: user.cart, product: product, quantity: 4) }
+
+        it "leaves the line's quantity unchanged" do
+          expect { add_to_cart(product_id: product.id, quantity: -3) }.not_to change { line.reload.quantity }
+        end
+      end
+
+      context "with an invalid quantity, without Turbo Streams" do
+        before do
+          post cart_items_path, params: { product_id: product.id, quantity: 0 }, headers: { "HTTP_REFERER" => products_url }
+        end
+
+        it { expect(response).to redirect_to(products_url) }
+
+        it "explains the problem" do
+          expect(flash[:alert]).to be_present
+        end
+      end
+
+      context "with lines from several categories in the cart" do
+        before do
+          create_list(:product, 3).each { |other| create(:cart_item, cart: user.cart, product: other) }
+        end
+
+        it "preloads each line's category for the cart stream" do
+          expect { add_to_cart(product_id: product.id) }.not_to lazy_load_categories
+        end
+      end
+
       context "without Turbo Streams" do
         def add_to_cart_as_html
           post cart_items_path, params: { product_id: product.id }, headers: { "HTTP_REFERER" => products_url }
@@ -83,6 +131,26 @@ RSpec.describe "Cart items", type: :request do
           before { add_to_cart_as_html }
 
           it { expect(response).to redirect_to(products_url) }
+        end
+      end
+    end
+
+    context "when signed in without a cart yet" do
+      let(:user) { create(:user) }
+
+      before { sign_in_as(user) }
+
+      it "creates the cart" do
+        expect { add_to_cart(product_id: product.id) }.to change(Cart, :count).by(1)
+      end
+
+      context "after the request" do
+        before { add_to_cart(product_id: product.id) }
+
+        it { expect(response).to have_http_status(:ok) }
+
+        it "adds the line to the new cart" do
+          expect(user.reload.cart.cart_items.pluck(:product_id)).to eq([ product.id ])
         end
       end
     end
@@ -118,6 +186,22 @@ RSpec.describe "Cart items", type: :request do
 
       it "leaves the quantity unchanged" do
         expect(line.reload.quantity).to eq(1)
+      end
+    end
+
+    %w[-1 abc].each do |quantity|
+      context "with a quantity of #{quantity.inspect}" do
+        before { update_line(line, quantity) }
+
+        it { expect(response).to have_http_status(:ok) }
+
+        it "keeps the line and its quantity" do
+          expect(line.reload.quantity).to eq(1)
+        end
+
+        it "shows an error in the cart" do
+          expect(response_document.at_css('turbo-stream[target="cart_flash"] template').text.strip).to be_present
+        end
       end
     end
 

@@ -17,6 +17,41 @@ RSpec.describe User, type: :model do
     it { is_expected.not_to allow_value("not-an-email").for(:email) }
   end
 
+  describe "#ensure_cart!" do
+    context "without a cart" do
+      let(:user) { create(:user) }
+
+      it "creates one" do
+        expect { user.ensure_cart! }.to change(Cart, :count).by(1)
+      end
+
+      it "returns the user's cart" do
+        expect(user.ensure_cart!).to eq(Cart.find_by!(user: user))
+      end
+    end
+
+    context "with a cart" do
+      let!(:user) { create(:user, :with_cart) }
+
+      it "returns it without creating another" do
+        expect { expect(user.ensure_cart!).to eq(user.cart) }.not_to change(Cart, :count)
+      end
+    end
+
+    # Another request created the cart after this user object looked for one.
+    context "when a cart appeared since the user last checked" do
+      let(:user) { create(:user) }
+      let!(:existing) do
+        user.cart # caches "no cart"
+        Cart.create!(user_id: user.id)
+      end
+
+      it "returns that cart without creating another" do
+        expect { expect(user.ensure_cart!).to eq(existing) }.not_to change(Cart, :count)
+      end
+    end
+  end
+
   describe "email normalization" do
     let(:user) { build(:user, email: "Mixed.Case@Example.COM") }
 

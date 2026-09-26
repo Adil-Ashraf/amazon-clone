@@ -4,8 +4,8 @@ class CheckoutsController < ApplicationController
   layout "checkout"
 
   def new
-    @cart = current_user.cart
-    @cart_items = @cart.cart_items.includes(:product).order(:created_at)
+    @cart = current_user.ensure_cart!
+    @cart_items = @cart.cart_items.includes(product: :category).order(:created_at)
     @order = current_user.orders.new(last_shipping_address || { shipping_name: current_user.name })
 
     redirect_to cart_path, alert: "Your cart is empty." if @cart_items.none?
@@ -37,8 +37,8 @@ class CheckoutsController < ApplicationController
   end
 
   def render_new_with_error(message, order: nil)
-    @cart = current_user.cart
-    @cart_items = @cart.cart_items.includes(:product).order(:created_at)
+    @cart = current_user.ensure_cart!
+    @cart_items = @cart.cart_items.includes(product: :category).order(:created_at)
     @order = order || current_user.orders.new(shipping_params)
     flash.now[:alert] = message if message
     render :new, status: :unprocessable_entity

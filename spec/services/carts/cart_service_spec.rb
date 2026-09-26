@@ -61,6 +61,30 @@ RSpec.describe Carts::CartService do
         expect { add_item(1) rescue nil }.not_to change(CartItem, :count)
       end
     end
+
+    [ 0, -3, nil, "2", 1.5 ].each do |quantity|
+      context "with a quantity of #{quantity.inspect}" do
+        it "raises InvalidQuantityError" do
+          expect { add_item(quantity) }.to raise_error(described_class::InvalidQuantityError)
+        end
+
+        it "creates no line" do
+          expect { add_item(quantity) rescue nil }.not_to change(CartItem, :count)
+        end
+      end
+    end
+
+    context "with a negative quantity for a product already in the cart" do
+      let!(:line) { create(:cart_item, cart: cart, product: product, quantity: 4) }
+
+      it "raises InvalidQuantityError" do
+        expect { add_item(-3) }.to raise_error(described_class::InvalidQuantityError)
+      end
+
+      it "leaves the line's quantity unchanged" do
+        expect { add_item(-3) rescue nil }.not_to change { line.reload.quantity }
+      end
+    end
   end
 
   describe "#update_quantity" do
@@ -81,6 +105,18 @@ RSpec.describe Carts::CartService do
     context "with a quantity of 0" do
       it "removes the line" do
         expect { update_quantity(0) }.to change { cart.cart_items.count }.by(-1)
+      end
+    end
+
+    [ -1, nil, "3" ].each do |quantity|
+      context "with a quantity of #{quantity.inspect}" do
+        it "raises InvalidQuantityError" do
+          expect { update_quantity(quantity) }.to raise_error(described_class::InvalidQuantityError)
+        end
+
+        it "keeps the line and its quantity" do
+          expect { update_quantity(quantity) rescue nil }.not_to change { cart.cart_items.pluck(:quantity) }
+        end
       end
     end
 

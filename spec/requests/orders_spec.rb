@@ -28,6 +28,17 @@ RSpec.describe "Orders", type: :request do
         expect(response_link_hrefs).to include(order_path(own_order)).and exclude(order_path(other_order))
       end
     end
+
+    context "when signed in with items from several categories" do
+      before do
+        create_list(:product, 3).each { |product| create(:order_item, order: own_order, product: product) }
+        sign_in_as(user)
+      end
+
+      it "preloads each item's category" do
+        expect { get_orders }.not_to lazy_load_categories
+      end
+    end
   end
 
   describe "GET /orders/:id" do

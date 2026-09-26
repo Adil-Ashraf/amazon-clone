@@ -4,13 +4,13 @@ class CartItemsController < ApplicationController
 
   def create
     @product = Product.find(params[:product_id])
-    quantity = params[:quantity].presence&.to_i || 1
+    quantity = params[:quantity].present? ? parse_quantity(params[:quantity]) : 1
 
     begin
       Carts::CartService.new(@cart).add_item(product: @product, quantity: quantity)
       @status_message = "Added to your cart"
       @status_variant = :success
-    rescue Carts::CartService::InsufficientStockError => e
+    rescue Carts::CartService::InsufficientStockError, Carts::CartService::InvalidQuantityError => e
       @status_message = e.message
       @status_variant = :error
     end
@@ -33,8 +33,8 @@ class CartItemsController < ApplicationController
     cart_item = @cart.cart_items.find(params[:id])
 
     begin
-      Carts::CartService.new(@cart).update_quantity(cart_item: cart_item, quantity: params[:quantity].to_i)
-    rescue Carts::CartService::InsufficientStockError => e
+      Carts::CartService.new(@cart).update_quantity(cart_item: cart_item, quantity: parse_quantity(params[:quantity]))
+    rescue Carts::CartService::InsufficientStockError, Carts::CartService::InvalidQuantityError => e
       @cart_flash_message = e.message
     end
 
@@ -80,12 +80,18 @@ class CartItemsController < ApplicationController
   private
 
   def set_cart
-    @cart = current_user.cart
+    @cart = current_user.ensure_cart!
     authorize @cart, :update?
   end
 
   def load_cart_items
-    @cart_items = @cart.cart_items.includes(:product).order(:created_at)
+    @cart_items = @cart.cart_items.includes(product: :category).order(:created_at)
+  end
+
+  # nil for anything that isn't a whole number, so the service rejects it
+  # instead of "abc" quietly becoming 0 (which would remove the line).
+  def parse_quantity(value)
+    Integer(value.to_s, 10, exception: false)
   end
 
   def flash_key(variant)

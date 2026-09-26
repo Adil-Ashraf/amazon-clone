@@ -34,6 +34,32 @@ RSpec.describe "Checkouts", type: :request do
       it { expect(response).to have_http_status(:ok) }
     end
 
+    context "when signed in with lines from several categories" do
+      before do
+        create_list(:product, 3).each { |other| create(:cart_item, cart: user.cart, product: other) }
+        sign_in_as(user)
+      end
+
+      it "preloads each line's category" do
+        expect { get_new_checkout }.not_to lazy_load_categories
+      end
+    end
+
+    context "when signed in without a cart yet" do
+      let(:cartless_user) { create(:user) }
+
+      before do
+        sign_in_as(cartless_user)
+        get_new_checkout
+      end
+
+      it { expect(response).to redirect_to(cart_path) }
+
+      it "gives the user a cart" do
+        expect(cartless_user.reload.cart).to be_present
+      end
+    end
+
     context "when signed in with an empty cart" do
       before do
         line.destroy!
