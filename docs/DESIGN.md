@@ -133,7 +133,7 @@ Inter only (400 / 500 / 600 / 700), fallbacks `ui-sans-serif, system-ui`.
 
 | Page            | Shape |
 | --------------- | ----- |
-| Header          | Logo · pill search (live results on the catalog, `live_search_controller`) · Orders · Wishlist · Account menu · Cart with count. Second row: Shop, Deals, New arrivals, Categories menu, the five largest categories, Help · Sell on Aisle Market. Below `lg`: menu button (drawer), logo, search toggle, cart. |
+| Header          | Logo · pill search (live results on the catalog, `live_search_controller`; plus a suggestions dropdown on every page, `search_suggest_controller`) · Orders · Wishlist · Account menu · Cart with count. Second row: Shop, Deals, New arrivals, Categories menu, the five largest categories, Help · Sell on Aisle Market. Below `lg`: menu button (drawer), logo, search toggle, cart. |
 | Home            | Hero (real top-rated photos) → category circles → Today's Featured Deals with countdown → three promo banners → Popular (units sold) → Recommended / Top rated → trust row → Recently viewed → newsletter. |
 | Catalog         | Sidebar filters (category, price, availability, rating) that become a drawer below `lg`; toolbar with count, sort, grid/list; removable filter chips; 1 / 2 / 3 / 4 columns at <340 / mobile / tablet / desktop. |
 | Product         | Sticky image left; category, title, rating, price and savings, stock, description, qty + Add to Cart, Buy Now, wishlist; trust grid; Description, Specifications (real fields), Reviews; You may also like; Recently viewed. Mobile: sticky price + Add to Cart bar. |

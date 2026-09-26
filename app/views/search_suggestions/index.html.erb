@@ -1,0 +1,36 @@
+<%= turbo_frame_tag @frame_id, target: "_top" do %>
+  <% if @query.length >= SearchSuggestionsController::MIN_QUERY_LENGTH %>
+    <% if @products.any? %>
+      <div role="listbox" id="<%= @frame_id %>_listbox" aria-label="Product suggestions" class="p-2">
+        <% @products.each_with_index do |product, index| %>
+          <%= link_to product_path(product), id: "#{@frame_id}_option_#{index}", role: "option", "aria-selected": "false",
+                data: { search_suggest_target: "option", action: "mouseenter->search-suggest#hover" },
+                class: "flex items-center gap-3 rounded-btn px-3 py-2 text-ink outline-none aria-selected:bg-subtle" do %>
+            <span class="relative block size-12 shrink-0 overflow-hidden rounded-lg bg-subtle">
+              <%= product_image_tag product, alt: "", sizes: :thumb %>
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-sm font-medium"><%= product.name %></span>
+              <span class="block truncate text-xs text-muted"><%= product.category.name %></span>
+            </span>
+            <span class="price shrink-0 text-sm"><%= format_price_cents(product.price_cents) %></span>
+          <% end %>
+        <% end %>
+        <%= link_to products_path(query: @query), id: "#{@frame_id}_option_all", role: "option", "aria-selected": "false",
+              data: { search_suggest_target: "option", search_suggest_view_all: true,
+                      action: "mouseenter->search-suggest#hover click->search-suggest#viewAll" },
+              class: "mt-1 flex items-center justify-between gap-3 rounded-btn border-t border-divider px-3 py-3 text-sm font-semibold text-brand-strong outline-none aria-selected:bg-brand-soft" do %>
+          <span class="truncate">View all results for &ldquo;<%= @query %>&rdquo;</span>
+          <%= icon(:arrow_right, css_class: "size-4 shrink-0") %>
+        <% end %>
+      </div>
+      <p class="sr-only" role="status"><%= pluralize(@products.size, "suggestion") %> available. Use the arrow keys to choose one.</p>
+    <% else %>
+      <div class="px-4 py-5 text-center">
+        <p class="text-sm font-semibold text-ink">No products found</p>
+        <p class="mt-1 text-sm text-muted">Nothing matches &ldquo;<%= @query %>&rdquo;. Try a shorter or different word.</p>
+      </div>
+      <p class="sr-only" role="status">No products found.</p>
+    <% end %>
+  <% end %>
+<% end %>

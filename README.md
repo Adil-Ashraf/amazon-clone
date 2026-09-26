@@ -70,6 +70,10 @@ components and page layouts, and where each UI signal comes from (§6).
 - Full-text search on name and description (Postgres `tsearch`, prefix match).
   On the catalog, results update as you type (debounced Turbo Frame visit),
   keep the current filters, and update the URL; Enter works everywhere.
+- Search suggestions on every page (on the catalog, alongside the live grid):
+  after two characters, up to six matching products (image, name, category,
+  price) from the same pg_search scope, plus "View all results", which keeps
+  the catalog's current filters; arrow keys, Enter and Escape work
 - Filters: category, price range, in stock only, on sale, minimum rating
 - Sorting: featured, price (low→high / high→low), newest, top rated, and best
   match when searching

@@ -1,0 +1,10 @@
+<%# locals: (frame_id:, css_class:) %>
+<%# The typeahead dropdown for one header search box (search_suggest_controller.js).
+    The frame is filled by SearchSuggestionsController. %>
+<div id="<%= frame_id %>_panel" hidden data-search-suggest-target="panel"
+     class="overflow-y-auto overscroll-contain rounded-2xl border border-line bg-surface shadow-float <%= css_class %>">
+  <p data-search-suggest-target="message" hidden role="status" class="px-4 py-4 text-sm text-muted"></p>
+  <%= turbo_frame_tag frame_id, target: "_top",
+        data: { search_suggest_target: "frame",
+                action: "turbo:frame-load->search-suggest#loaded turbo:before-fetch-response->search-suggest#checkResponse turbo:fetch-request-error->search-suggest#failed turbo:frame-missing->search-suggest#missing" } %>
+</div>

@@ -13,6 +13,7 @@ Rails.application.routes.draw do
   resource :registration, only: %i[new create]
   resource :account, only: %i[show]
 
+  resources :search_suggestions, only: %i[index]
   resources :products, only: %i[index show] do
     resources :reviews, only: %i[create]
   end
